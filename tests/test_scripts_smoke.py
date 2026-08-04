@@ -1,70 +1,90 @@
-"""Smoke tests for auxiliary pipeline scripts (non-gated)."""
+"""Subprocess smoke tests for the thin skyfall scripts.
+
+Runs the CLIs through the venv interpreter with cwd = package root, exactly as
+a user would, and asserts exit codes + written artifacts.
+"""
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent
 
 
-def test_generate_api_docs_writes_reference() -> None:
-    """generate_api_docs.py is aesthetic-only but should run without error."""
-    script = PROJECT_ROOT / "scripts" / "generate_api_docs.py"
+def _run(*args: str, expect: int = 0) -> subprocess.CompletedProcess:
     result = subprocess.run(
-        [sys.executable, str(script)],
-        cwd=PROJECT_ROOT,
+        [sys.executable, str(ROOT / "scripts" / args[0]), *args[1:]],
+        cwd=ROOT,
         capture_output=True,
         text=True,
-        timeout=120,
-        check=False,
     )
-    assert result.returncode == 0, result.stderr or result.stdout
-    api_ref = PROJECT_ROOT / "output" / "docs" / "api_reference.md"
-    assert api_ref.is_file()
-    body = api_ref.read_text(encoding="utf-8")
-    assert "gradient_descent" in body.lower()
+    assert result.returncode == expect, f"cmd failed: {args} -> {result.stderr}"
+    return result
 
 
-def test_preflight_script_emits_diagnostics() -> None:
-    """00_preflight.py is aesthetic-only; exit 0 when no render mermaid, exit 1 when chrome absent."""
-    script = PROJECT_ROOT / "scripts" / "00_preflight.py"
-    result = subprocess.run(
-        [sys.executable, str(script)],
-        cwd=PROJECT_ROOT,
-        capture_output=True,
-        text=True,
-        timeout=120,
-        check=False,
-    )
-    assert result.returncode in (0, 1), result.stderr or result.stdout
-    combined = f"{result.stdout}\n{result.stderr}".lower()
-    if result.returncode == 1:
-        assert any(token in combined for token in ("preflight", "puppeteer", "mmdc"))
+class TestRunMission:
+    def test_brief(self) -> None:
+        result = _run("run_mission.py", "brief")
+        assert "skyfall" in result.stdout
+
+    def test_execute(self) -> None:
+        result = _run("run_mission.py", "execute")
+        assert "success: True" in result.stdout
+
+    def test_all_json(self) -> None:
+        result = _run("run_mission.py", "all", "--json")
+        payload = json.loads(result.stdout)
+        assert payload["result"]["film"] == "skyfall"
+
+    def test_invalid_phase_exits_2(self) -> None:
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "run_mission.py"), "bogus"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 2
 
 
-def test_run_api_doc_generation_continues_when_glossary_index_fails(tmp_path: Path) -> None:
-    """Glossary index failure is logged; static api_reference.md still written."""
-    repo_root = PROJECT_ROOT.parent.parent
-    src_path = str(PROJECT_ROOT / "src")
-    for path in (str(repo_root), src_path):
-        if path not in sys.path:
-            sys.path.insert(0, path)
+class TestPreflight:
+    def test_preflight_ok(self) -> None:
+        result = _run("00_preflight.py", "skyfall")
+        assert "OK" in result.stdout
 
-    scripts_dir = str(PROJECT_ROOT / "scripts")
-    if scripts_dir not in sys.path:
-        sys.path.insert(0, scripts_dir)
-    import generate_api_docs as api_docs_mod
 
-    def _fail(_src: str) -> list:
-        raise ValueError("glossary index unavailable")
+class TestGenerateManuscript:
+    def test_generate_outputs(self, tmp_path: Path) -> None:
+        result = _run(
+            "z_generate_manuscript_variables.py",
+            "--output-dir",
+            str(tmp_path),
+        )
+        assert "manuscript variables" in result.stdout
+        assert (tmp_path / "data" / "manuscript_variables.json").is_file()
+        assert (tmp_path / "figures" / "estate_defense.png").is_file()
+        resolved = list((tmp_path / "manuscript").glob("*.md"))
+        assert resolved  # at least one resolved section
 
-    project_root = tmp_path
-    (project_root / "src").mkdir()
-    result = api_docs_mod.run_api_doc_generation(project_root, api_index_builder=_fail)
-    assert result is not None
-    api_ref = project_root / "output" / "docs" / "api_reference.md"
-    assert api_ref.is_file()
-    assert result["glossary"] is None
-    assert result["api_reference"] == str(api_ref)
+    def test_strict_fails_on_unresolved(self, tmp_path: Path) -> None:
+        # Provide a manuscript dir whose section contains an unresolved token.
+        manu = tmp_path / "manuscript_src"
+        manu.mkdir()
+        (manu / "00_abstract.md").write_text("token {{NOPE}} left", encoding="utf-8")
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "z_generate_manuscript_variables.py"),
+                "--manuscript-dir",
+                str(manu),
+                "--output-dir",
+                str(tmp_path / "out"),
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode != 0
+        assert "unresolved" in result.stderr

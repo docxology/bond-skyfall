@@ -1,31 +1,27 @@
 {
   "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
   "@type": "SoftwareSourceCode",
+  "name": "Skyfall: SILVA — Special-Agent Mission Software",
+  "version": "0.1.0",
+  "description": "Deterministic mission-software package modeling the cyberattack on MI6 (network intrusion paths), the legacy-system exposure audit, and the Skyfall estate choke-point defense plan. Implements the frozen BOND-API MissionProvider contract.",
+  "license": "https://spdx.org/licenses/MIT",
   "author": [
     {
-      "@id": "https://orcid.org/0000-0001-6232-9096",
       "@type": "Person",
-      "affiliation": {
-        "@type": "Organization",
-        "name": "Active Inference Institute"
-      },
+      "givenName": "Daniel Ari",
       "familyName": "Friedman",
-      "givenName": "Daniel Ari"
+      "identifier": "https://orcid.org/0000-0001-6232-9096"
     }
   ],
   "codeRepository": "https://github.com/docxology/skyfall",
-  "dateModified": "2026-07-10",
-  "identifier": "10.5281/zenodo.20417136",
   "keywords": [
-    "optimization algorithms",
-    "gradient descent",
-    "convergence analysis",
-    "numerical methods",
-    "mathematical programming",
-    "reproducible research",
-    "infrastructure automation"
+    "cyberattack simulation",
+    "network intrusion paths",
+    "legacy vulnerability audit",
+    "estate defense planning"
   ],
-  "license": "https://spdx.org/licenses/MIT",
-  "name": "Convergence Analysis of Gradient Descent Optimization",
-  "version": "2.5.2"
+  "programmingLanguage": {
+    "@type": "ComputerLanguage",
+    "name": "Python"
+  }
 }

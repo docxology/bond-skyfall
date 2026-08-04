@@ -1,49 +1,22 @@
-domain: code_research
-display_name: Code Research Exemplar
-required_packages:
-  - numpy
-  - matplotlib
-  - pytest
-preferred_outputs:
-  - pdf
-  - html
-  - docx
-  - epub
-validation_gates:
-  - experiment_method_design
-  - artifact_manifest
-  - evidence_grounding
-  - render_validation
-  - publication_readiness
-figure_types:
-  - convergence_plot
-  - performance_benchmark
-  - sensitivity_analysis
-citation_policy: official_or_scholarly
-source_policy: "Prefer primary project outputs, official package documentation, and scholarly optimization references."
+# domain_profile.yaml — skyfall (SILVA)
+# Advisory agentic-research controls. Validation inputs only; executes no agents.
+
+domain: mission-software
+film: skyfall
+codename: SILVA
 review_gates:
-  - experiment_method_design
-  - render_validation
-  - publication_readiness
+  - coverage_90
+  - zero_mocks
+  - ruff_mypy_clean
+  - deterministic_results
+  - protocol_compliance
+source_policy:
+  - fixed_scenario_constants
+  - no_network_dependence
+  - no_wall_clock_in_metrics
 artifact_expectations:
-  - output/data/manuscript_variables.json
-  - output/data/optimization_results.csv
-  - output/figures/convergence_plot.png
-  - output/reports/validation_report.json
-  - output/pdf/template_code_project_combined.pdf
+  - manuscript_tokens_injected
+  - flagship_figure_rendered
 benchmark_rubric:
-  name: code-research-readiness
-  dimensions:
-    - name: output_validity
-      weight: 1.0
-    - name: reproducibility_bundle
-      weight: 1.0
-    - name: artifact_manifest
-      weight: 1.0
-    - name: evidence_grounding
-      weight: 2.0
-    - name: render_success
-      weight: 1.0
-    - name: publication_readiness
-      weight: 1.0
-llm_prompt_guidance: "Use generated optimization artifacts and manuscript variables as the evidence source; do not invent numeric results."
+  determinism: byte_identical_figures
+  correctness: real_computation_only

@@ -1,6 +1,6 @@
 # skyfall skill — AGENTS.md
 
-Project-scoped skill bundle for the `skyfall` exemplar.
+Project-scoped skill bundle for the `skyfall` (SILVA) mission package.
 
 | File | Purpose |
 | --- | --- |
@@ -12,9 +12,9 @@ Project-scoped skill bundle for the `skyfall` exemplar.
 
 Agents that need to:
 
-- Drive the in-repo exemplar end-to-end.
-- Fork this exemplar as a starting scaffold.
-- Verify layer boundaries and thin-orchestrator contracts.
+- Drive the SILVA mission package (scripts, domain core, manuscript/tokens).
+- Verify BOND guardrails (coverage, no mocks, ruff/mypy, determinism,
+  protocol compliance) hold after changes.
 
 ## Cross-refs
 

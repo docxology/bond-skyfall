@@ -1,27 +1,9 @@
-# Data Directory — Agent Guide
+# Data directory — versioned inputs only.
 
-Versioned project **inputs** only. Pipeline outputs must not be committed here.
+This directory holds the SILVA mission's declarative overlays. Pipeline
+outputs are regenerable and live under `output/` (git-ignored).
 
-## `claim_ledger.yaml`
-
-Evidence-registry for manuscript claims that are intentionally sourced from code, examples, or generated reports rather than `{{VARIABLE}}` injection.
-
-### Schema (preserve when adding rows)
-
-| Field | Purpose |
-| --- | --- |
-| `claim_id` | Stable identifier |
-| `kind` | Claim category |
-| `value` | Declared numeric or textual value |
-| `source` | Provenance (module, manuscript section, artifact) |
-| `source_tier` | Trust tier for validation |
-| `freshness` | Staleness policy |
-| `artifact_path` | Optional path to backing file |
-
-## Edit protocol
-
-1. Edit only when manuscript claims, figure defaults, or source-backed numeric facts change.
-2. Re-run evidence validation / pipeline stages that consume the ledger.
-3. Do not store generated CSV/JSON/PNG under `data/`.
+- `claim_ledger.yaml` — evidence registry for sourced numeric claims that are
+  not `{{VARIABLE}}`-injected.
 
 Quick orientation: [`README.md`](README.md).

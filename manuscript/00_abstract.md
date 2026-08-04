@@ -1,11 +1,28 @@
-# Abstract {#sec:abstract}
+# Skyfall — SILVA
 
-This paper presents a convergence study of **fixed-step gradient descent** on a convex quadratic, framed as the computational exemplar of the [Research Project Template](https://github.com/docxology/template). The implementation lives in `projects/working/bond/skyfall/src/optimizer.py`; experiments and figures are orchestrated by `projects/working/bond/skyfall/scripts/optimization_analysis.py` and hydrated into the manuscript through `scripts/z_generate_manuscript_variables.py`, so tables and prose track `output/data/optimization_results.csv` after every pipeline run.
+## Abstract
 
-We evaluate {{CONFIG_NUM_STEP_SIZES}} step sizes from $\alpha = {{CONFIG_MIN_STEP_SIZE}}$ to $\alpha = {{CONFIG_MAX_STEP_SIZE}}$, spanning conservative, near-optimal, aggressive, and divergent regimes for a unit Hessian model. The build chain exercises template infrastructure end-to-end: scientific helpers (`infrastructure.scientific.stability`, `infrastructure.scientific.benchmarking`), validation, rendering (`infrastructure/rendering/pdf_renderer.py`), and reporting. Accessibility-oriented plotting defaults (colourblind-safe palette, 300 dpi exports) are centralized in `src/figures/` and `src/analysis/`.
+Skyfall is a PROJECT BOND mission-software package (film: Skyfall, 2012;
+codename **SILVA**) that models three linked threat surfaces through a purely
+deterministic computational core. The cyber layer models the intrusion paths
+an adversary can take into MI6's headquarters network, enumerating all simple
+routes and the minimum-hop / minimum-difficulty routes into the deepest
+system. The legacy layer audits the aging infrastructure that still underpins
+operations, computing a closed-form exposure score per system and an
+aggregate fleet risk. The physical-defense layer computes Silva's island
+hideout topology and the Skyfall estate's articulation (choke) points, then
+plans a defender assignment that covers them.
 
-Contributions are **methodological** and **architectural**. On the methods side, we relate empirical iteration counts and error decay to the scalar contraction factor $\rho(\alpha) = |1-\alpha|$ and document cases where runs hit $N_{\max} = {{CONFIG_MAX_ITERATIONS}}$ before meeting the gradient tolerance. On the architecture side, we demonstrate a zero-mock test suite on project `src/` (see [test_optimizer.py](https://github.com/docxology/template/blob/main/projects/working/bond/skyfall/tests/test_optimizer.py)), automated six-figure analysis, and reproducibility metadata (configuration hash, artifact counts) injected into [@sec:reproducibility].
+All results are reproducible: fixed inputs, no random draws, and no wall-clock
+in any persisted metric. The package implements the frozen BOND-API
+``MissionProvider`` contract and registers its gadgets with the BOND gadget
+registry, making the SILVA mission discoverable by the suite's orchestrator.
 
-**Results (this configuration):** {{RESULT_NUM_CONVERGED}} of {{CONFIG_NUM_STEP_SIZES}} grid points report `converged=True` in the CSV; non-convergent rows flag either slow progress at small $\alpha$ under the iteration cap or instability when $|1-\alpha| \geq 1$. The analytical minimizer remains $x^\ast = {{RESULT_OPTIMUM_X}}$ with $f(x^\ast) = {{RESULT_OPTIMUM_F}}$ for the configured $(A,b)$.
+## Concurrency of the three threats
 
-**Keywords:** {{CONFIG_KEYWORDS}}
+The mission treats the cyber intrusion ({{SILVA_ENTRY}} → {{SILVA_TARGET}}),
+the legacy-system exposure (fleet size {{SILVA_FLEET_SIZE}}, mean exposure
+{{SILVA_MEAN_EXPOSURE}}), and the estate's choke-point defense ({{SILVA_NUM_CHOKE_POINTS}}
+choke points, coverage {{SILVA_COVERAGE}}) as one coordinated assault — the
+way the film depicts a single adversary reaching MI6's most sensitive systems
+through a chain of aging, poorly-segmented connections.

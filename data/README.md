@@ -1,13 +1,6 @@
-# skyfall/data
+# data/ — README
 
-Project-maintained **inputs** for the code exemplar (not pipeline outputs).
+Versioned project **inputs** only. Generated outputs must not be committed
+here; they live in `output/` (git-ignored).
 
-## Quick reference
-
-| File | Role |
-| --- | --- |
-| `claim_ledger.yaml` | Source-backed numeric and artifact claims for evidence validation |
-
-Generated analysis outputs belong under `output/` during pipeline runs, not here.
-
-Schema and edit protocol: [`AGENTS.md`](AGENTS.md).
+- `claim_ledger.yaml` — evidence registry for sourced numeric claims.

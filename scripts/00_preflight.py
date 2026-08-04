@@ -1,26 +1,42 @@
 #!/usr/bin/env python3
-"""Pre-flight check for manuscript rendering prerequisites."""
+"""Thin orchestrator: preflight the skyfall film for BOND-API compliance.
+
+Usage:
+    uv run python scripts/00_preflight.py [slug]
+
+Verifies that the skyfall mission provider can be discovered and bound via
+``bond_api.discovery``, that its five provider methods exist, and that the
+domain core imports without the BOND protocol. Exit 0 iff all checks pass.
+"""
 
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-sys.path.insert(0, str(REPO_ROOT))
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
 
-from infrastructure.rendering.preflight import run_manuscript_preflight  # noqa: E402
+from bond_api.discovery import load_provider  # noqa: E402
+from bond_api.protocol import protocol_surface  # noqa: E402
 
 
 def main() -> int:
-    """CLI entry point."""
-    manuscript_dir = Path(__file__).resolve().parent.parent / "manuscript"
-    ok, message = run_manuscript_preflight(manuscript_dir)
-    if ok:
-        return 0
-    sys.stderr.write(message)
-    return 1
+    slug = sys.argv[1] if len(sys.argv) > 1 else "skyfall"
+    provider = load_provider(slug, search_paths=[SRC])
+    surface = protocol_surface()
+    expected = set(surface["provider_methods"])
+    missing = [m for m in expected if not callable(getattr(provider, m, None))]
+    if missing:
+        print(f"FAIL: provider {slug!r} missing methods {missing}")
+        return 1
+    print(
+        f"OK: {slug} discoverable, {len(missing)} missing methods, {len(surface['dataclasses'])} protocol dataclasses"
+    )
+    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

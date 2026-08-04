@@ -1,57 +1,48 @@
+# Claim ledger — skyfall (SILVA)
+# Evidence registry for sourced numeric claims. Manuscript result metrics are
+# {{VARIABLE}}-injected from skyfall.manuscript_variables.generate_variables();
+# this ledger documents the underlying fixed-data/computation mappings.
+
 claims:
-  - claim_id: figure-export-dpi
-    kind: number
-    value: 300
-    source: projects/working/bond/skyfall/src/viz_config.py plotting defaults (dpi)
-    source_tier: project_source
-    freshness: active
-    artifact_path: output/figures/convergence_plot.png
-  - claim_id: step-size-sensitivity-cap
-    kind: number
-    value: 500
-    source: projects/working/bond/skyfall/src/sweeps.py sensitivity_sweep max_iter cap
-    source_tier: generated_metric
-    freshness: active
-    artifact_path: output/figures/step_size_sensitivity.png
-  - claim_id: stability-log-lower
-    kind: number
-    value: -6
-    source: projects/working/bond/skyfall/src/figures/scientific_stability.py stability visualization caption
-    source_tier: project_source
-    freshness: active
-    artifact_path: output/figures/stability_analysis.png
-  - claim_id: solution-relative-error-exponent
-    kind: number
-    value: -4
-    source: projects/working/bond/skyfall/manuscript/03_results.md stated precision threshold
-    source_tier: manuscript_claim
-    freshness: active
-    artifact_path: manuscript/03_results.md
-  - claim_id: stability-log-upper
-    kind: number
-    value: -9
-    source: projects/working/bond/skyfall/src/figures/scientific_stability.py stability visualization caption
-    source_tier: project_source
-    freshness: active
-    artifact_path: output/figures/stability_analysis.png
-  - claim_id: benchmark-tolerance-exponent
-    kind: number
-    value: -10
-    source: projects/working/bond/skyfall/scripts/optimization_analysis.py dimensional benchmark tolerance
-    source_tier: project_source
-    freshness: active
-    artifact_path: output/figures/performance_benchmark.png
-  - claim_id: benchmark-min-iterations
-    kind: number
-    value: 219
-    source: projects/working/bond/skyfall/manuscript/03_results.md benchmark caption
-    source_tier: manuscript_claim
-    freshness: active
-    artifact_path: output/figures/performance_benchmark.png
-  - claim_id: benchmark-max-iterations
-    kind: number
-    value: 238
-    source: projects/working/bond/skyfall/manuscript/03_results.md benchmark caption
-    source_tier: manuscript_claim
-    freshness: active
-    artifact_path: output/figures/performance_benchmark.png
+  silva_network_nodes:
+    claim_id: silva_network_nodes
+    kind: scenario_data
+    value: 9
+    source: "src/skyfall/cyber_ops.py :: DEFAULT_NETWORK"
+    source_tier: code
+    freshness: regenerate
+  silva_intrusion_paths:
+    claim_id: silva_intrusion_paths
+    kind: computed
+    value: 6
+    source: "src/skyfall/cyber_ops.py :: intrusion_paths(internet, registry)"
+    source_tier: code
+    freshness: regenerate
+  silva_shortest_hops:
+    claim_id: silva_shortest_hops
+    kind: computed
+    value: 5
+    source: "src/skyfall/cyber_ops.py :: shortest_intrusion_path(internet, registry)"
+    source_tier: code
+    freshness: regenerate
+  silva_fleet_size:
+    claim_id: silva_fleet_size
+    kind: scenario_data
+    value: 5
+    source: "src/skyfall/legacy_audit.py :: default_legacy_fleet"
+    source_tier: code
+    freshness: regenerate
+  silva_num_choke_points:
+    claim_id: silva_num_choke_points
+    kind: computed
+    value: 3
+    source: "src/skyfall/estate_defense.py :: choke_points(DEFAULT_ESTATE)"
+    source_tier: code
+    freshness: regenerate
+  silva_island_corridor:
+    claim_id: silva_island_corridor
+    kind: computed
+    value: 8
+    source: "src/skyfall/estate_defense.py :: island_topology(default_island())"
+    source_tier: code
+    freshness: regenerate

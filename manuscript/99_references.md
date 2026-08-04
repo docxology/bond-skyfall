@@ -1,10 +1,14 @@
-# References {#sec:references}
+# References
 
-Bibliography lives in [`manuscript/references.bib`](references.bib) and is read by Pandoc during PDF render. The build pipeline invokes Pandoc with `--natbib`, so every `[@key]` citation in the manuscript is rewritten to the appropriate `\cite{}`/`\citep{}`/`\citet{}` LaTeX command and resolved against the bib file.
+Cormen, T. H., Leiserson, C. E., Rivest, R. L., & Stein, C. (2009).
+*Introduction to Algorithms* (3rd ed.). MIT Press. — breadth-first search,
+Dijkstra's algorithm, and depth-first search / articulation-point analysis
+(Chapters 20–22).
 
-To validate that `references.bib` is syntactically clean and contains the required fields per entry type:
+Even, S. (2011). *Graph Algorithms* (2nd ed.). Cambridge University Press. —
+biconnectivity and cut-vertex (articulation-point) theory underlying the
+choke-point analysis.
 
-```bash
-uv run python -m infrastructure.reference.citation.cli validate \
-    projects/working/bond/skyfall/manuscript/references.bib --strict
-```
+Mendelson, E. (2010). *Introduction to Mathematical Logic* (5th ed.). Chapman
+& Hall/CRC. — foundational logical/verification framing for reproducibility
+and provenance claims.

@@ -1,5 +1,17 @@
-# Code-centric exemplar: optional monorepo adapters only.
-allow_infrastructure_imports:
-  - src/analysis/_infra.py
-  - src/_runtime.py
-  - src/benchmark_support.py
+layer_contract:
+  src:
+    pure_domain:
+      - cyber_ops
+      - legacy_audit
+      - estate_defense
+    protocol_adapter:
+      - mission
+    manuscript:
+      - manuscript_variables
+      - figures
+  scripts:
+    - run_mission
+    - 00_preflight
+    - z_generate_manuscript_variables
+  rule: pure domain modules must not import bond_api; only mission (and
+    manuscript_variables/figures via mission) bind to the protocol.

@@ -1,68 +1,48 @@
-# skyfall TODO
+# TODO — skyfall (SILVA)
 
-Forward-only backlog for the code-first numerical exemplar — the reference
-thin-orchestrator control-positive path for code-centric research projects.
+## Built (phase 2)
 
-## Current validation evidence
+- **Cyber ops** (`src/skyfall/cyber_ops.py`): MI6 HQ directed-graph model,
+  simple-path enumeration, BFS shortest path, Dijkstra cheapest path,
+  per-hop survival simulation. Real data (fixed `DEFAULT_NETWORK`).
+- **Legacy audit** (`src/skyfall/legacy_audit.py`): closed-form exposure score
+  (age/patch/protocol/surface), fleet aggregation + risk tiers, greedy
+  budgeted remediation. Real data (fixed `default_legacy_fleet()`).
+- **Estate defense** (`src/skyfall/estate_defense.py`): island flood-fill
+  topology (reachable/perimeter/hideout), Tarjan articulation (choke) points,
+  defender assignment + coverage. Real data (fixed `DEFAULT_ESTATE`,
+  `default_island()`).
+- **Protocol adapter** (`src/skyfall/mission.py`): frozen `bond_api`
+  `MissionProvider` (film `skyfall`, codename `SILVA`), five-stage lifecycle,
+  `register_gadgets()`.
+- **Manuscript + figures**: `manuscript_variables.py` `{{TOKEN}}` hydration;
+  deterministic estate-defense figure (`figures/`).
+- Thin scripts: `run_mission.py`, `00_preflight.py`,
+  `z_generate_manuscript_variables.py`.
 
-- Manuscript pre-render gate: `uv run python -m infrastructure.validation.cli prerender projects/working/bond/skyfall/manuscript --repo-root .`
-- Project tests and coverage: `uv run pytest projects/working/bond/skyfall/tests/ --cov=projects/working/bond/skyfall/src --cov-fail-under=90`
-- Stage 02 analysis must write `output/data/optimization_results.csv` before strict manuscript-variable generation: `uv run python scripts/pipeline/stage_02_analysis.py --project templates/skyfall`
-- Stage 03 manuscript render: `uv run python scripts/pipeline/stage_03_render.py --project templates/skyfall`
-- Stage 04 output validation: `uv run python scripts/pipeline/stage_04_validate.py --project templates/skyfall`
-- Repo drift gate: `uv run python scripts/audit/check_template_drift.py --strict`
-- Code quality: `uv run ruff check projects/working/bond/skyfall/src/` and `uv run mypy projects/working/bond/skyfall/src/` must both pass clean.
-- Benchmark reproducibility: tracked benchmark reports and figures contain only deterministic facts; wall-clock timing is logged as a runtime diagnostic, and two-run byte-equality tests enforce the boundary.
-- Live test count and measured coverage percentage → [`docs/_generated/COUNTS.md`](../../../docs/_generated/COUNTS.md) (regenerated, never hardcoded here; both numbers drift faster than this file).
+## Declared integration points (not yet bound)
 
-## Accuracy pass — 2026-08-02 (measured)
+- **bond-utilities provenance**: `bond_utilities.mission_io.record_provenance_outcome`
+  is declared as a dev dependency and is importable; the mission currently
+  carries its own in-protocol `Provenance` (per the frozen `bond_api`
+  `MissionOutcome`). **Acceptance**: when a suite-level orchestrator expects
+  outcome persistence via `bond_utilities.mission_io`, add a thin
+  `persist_outcome()` call in `mission.py`/a script and re-verify determinism.
+- **Orchestrator discovery**: the package already satisfies
+  `bond_api.discovery` (`skyfall.mission` + `MissionProvider`). **Acceptance**:
+  run `scripts/00_preflight.py skyfall` and have `bond-orchestrator` discover
+  `skyfall` from its `src/`; nothing further required in-repo.
 
-- Prerender: clean (no render-blocking pitfalls, no undefined citations).
-- pytest: **242 passed**, **97.67 %** coverage on `src/` (floor 90 %).
-- Stage 02: 8/8 analysis scripts; 46 manuscript variables generated.
-- Stage 03: combined PDF rendered (25 pages), `Valid PDFs: 1/1`; 0 `^! ` lines in compile logs; 0 `??` in `pdftotext`.
-- Stage 04: all checks pass (PDF, bookends, markdown, structure, figure registry, evidence registry, design overlays, artifact manifest); rendered-provenance receipt written (54 sources / 18 config / 72 outputs).
-- Drift: `check_template_drift.py --project templates/skyfall --strict` → no drift detected.
+## Not implemented (deliberately out of scope)
 
-### Fixed in this pass
+- Live/stochastic intrusion simulation (would break determinism).
+- Physical estate simulation (would break determinism and add deps).
 
-- `fig:complexity` caption corrected to the actual 3×2 six-panel layout; replaced the false "both saturate at the iteration cap" claim (α=2.5 terminates via `non_finite`) and described the stability-width and cross-profile bottom panels.
-- Agency-category boundary corrected to the code's `α < 0.3` threshold (`manuscript/03_results.md`).
-- Removed literal `{{CONFIG_*}}` / `{{RESULT_*}}` wildcard prose in `01_introduction.md` and `07_scope_and_related_work.md` so the rendered PDF no longer leaks raw braces.
-- `scripts/AGENTS.md` + `scripts/README.md`: listed the on-disk `04_benchmark_stage.py`, `08_connector_search.py`, `09_provenance_record.py`, `10_research_workflow.py`, `__init__.py`; replaced stale `[0.01, 0.05, 0.1, 0.2]` step-size grids with the configured six-value grid.
-- `tests/AGENTS.md` + `tests/README.md`: added `test_benchmark_support.py` to diagram, class line, and bullets.
-- Root `AGENTS.md`: refreshed `SRC_F` / `M_F` mermaid listings, ProgressBar grid, stray `##` heading.
-- `docs/AGENTS.md`: corrected the `{{VARIABLE}}` token count (28 → 46) and stale per-file line counts; `docs/syntax_guide.md`: `CONFIG_VERSION` 2.5.2, added missing `RESULT_*` / `ARTIFACT_*` / `STABILITY_FUNCTION` rows, corrected the "never use `\begin{equation}`" guidance (the manuscript uses that form and it resolves).
-- `manuscript/AGENTS.md`: version 2.5.2; File Inventory token lists now match the live per-file `{{TOKEN}}` usage exactly (verified programmatically).
-- `docs/README.md`: removed the stale "127 files, 14 subdirectories" literal (COUNTS.md is authoritative).
-- Added `.agents/README.md` and `.agents/skills/README.md` per the shared exemplar catalog contract; all relative cross-references resolve.
+## Verification
 
-## Integrity and template-status gaps
-
-- Keep this exemplar as the smallest reliable control-positive path for code-centric research projects.
-- Keep dashboard, API docs, figures, and manuscript variables generated from source, not hand-maintained output snapshots.
-- Add a project-local output validation script only if it checks artifacts beyond the generic Stage 04 validators.
-- Add or document a stable final artifact-manifest refresh path for single-stage analysis/render/copy checks. **Documented:** `infrastructure.core.pipeline.artifacts.snapshot_current_artifact_manifest` serves this role.
-
-## Configurable-surface gaps
-
-- Keep `manuscript/config.yaml.example` as the richer copy-and-customize template for publication, LLM, testing, and steganography toggles.
-- Add any future optimizer hyperparameter config under typed source loaders rather than reading ad hoc YAML from scripts.
-
-## Documentation and signposting gaps
-
-- Keep README quick-start commands aligned with the qualified project name `templates/skyfall`.
-- Link new public artifacts from README, AGENTS, and `docs/_generated/exemplar_roster.md` through the generator.
-
-## Test and validator gaps
-
-- Add a negative control before widening optimizer claims beyond the bundled deterministic objectives.
-- Add dashboard schema assertions whenever dashboard fields or chart payloads change.
-- Close remaining infrastructure-path branch misses in `analysis/scientific_reports.py` and `analysis/workflow.py` with subprocess isolation tests mirroring `TestImportFallback` if coverage gates tighten further.
-
-## Ordered improvement ladder
-
-1. Preserve the strict analysis-to-manuscript variable contract.
-2. Add focused validators for any new generated artifact family.
-3. Expand benchmark scenarios only with deterministic seeds, expected-shape tests, and documented claim boundaries.
-4. Refresh generated docs after any public-surface change.
+```bash
+uv run pytest tests/ --cov=src --cov-fail-under=90
+uv run ruff check src/ scripts/ tests/ && uv run ruff format src/ scripts/ tests/
+uv run mypy src/ scripts/
+rg -n "template[_]code_project" . --glob '!uv.lock' --glob '!.git/**' || echo Clean
+```

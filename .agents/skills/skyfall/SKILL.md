@@ -1,53 +1,60 @@
 ---
 name: skyfall
-description: Code-centric optimization research exemplar — gradient descent, convergence analysis, automated figures, dashboard, and publication-quality PDF.
+description: Skyfall (2012) SILVA mission package — cyber intrusion paths, legacy exposure audit, estate choke-point defense, BOND-API MissionProvider.
 version: 0.1.0
 author: docxology
 license: MIT
-tags: [exemplar, code, optimization, thin-orchestrator]
+tags: [bond, film, mission, cyber-ops, legacy-audit, estate-defense, thin-orchestrator]
 ---
 
 # skyfall
 
-Project-scoped skill for the in-repo exemplar at
+Project-scoped skill for the BOND film package at
 `projects/working/bond/skyfall/`. Load this when working inside the project.
 
 ## When to Use
 
-- Working inside the `skyfall` exemplar — running scripts, editing source,
-  or regenerating outputs.
-- Forking this exemplar as the starting scaffold for a new research project.
-- Validating that the exemplar's contracts (thin-orchestrator, layer boundaries,
-  no-mocks testing) still hold after changes.
+- Working inside the `skyfall` package — running the mission, editing the
+  domain core, or regenerating manuscript/tokens/figure.
+- Verifying the BOND guardrails hold after changes (see the shared preamble).
 
 ## Quick Reference
 
 ```bash
-# From the repository root
-uv run pytest projects/working/bond/skyfall/tests --cov=projects/working/bond/skyfall/src --cov-fail-under=90
-uv run python scripts/pipeline/stage_02_analysis.py --project templates/skyfall
-uv run python scripts/pipeline/stage_03_render.py --project templates/skyfall
-uv run python scripts/pipeline/stage_04_validate.py --project templates/skyfall
-uv run python scripts/pipeline/stage_05_copy.py --project templates/skyfall
+cd projects/working/bond/skyfall
+uv sync --extra dev
+uv run python scripts/run_mission.py all --json          # five-stage SILVA run
+uv run python scripts/00_preflight.py skyfall             # discovery/protocol check
+uv run python scripts/z_generate_manuscript_variables.py  # tokens + figure
+uv run pytest tests/ --cov=src --cov-fail-under=90        # zero-mock >90% gate
+uv run ruff check src/ scripts/ tests/ && uv run ruff format src/ scripts/ tests/
+uv run mypy src/ scripts/
 ```
+
+## Domain core
+
+- `src/skyfall/cyber_ops.py` — network intrusion paths: DFS enumeration, BFS
+  shortest, Dijkstra cheapest, per-hop survival simulation.
+- `src/skyfall/legacy_audit.py` — closed-form exposure score, fleet audit,
+  greedy remediation.
+- `src/skyfall/estate_defense.py` — island flood-fill topology, Tarjan
+  articulation (choke) points, defender assignment.
+- `src/skyfall/mission.py` — the BOND-API `MissionProvider` adapter (film
+  `skyfall`, codename `SILVA`) + `register_gadgets`.
 
 ## Pitfalls
 
-- **Keep scripts thin.** Business logic belongs in `src/` or shared
-  `infrastructure/`, not in `scripts/`.
-- **No mocks.** All tests must use real data, real files, and real
-  computation.
-- **Outputs are disposable.** Never hand-edit `output/` — regenerate from
-  source and config.
-- **Keep tracked benchmarks deterministic.** Serialize reproducible inputs,
-  objective values, and checks; keep wall-clock timing as a runtime-only
-  diagnostic.
-- **Run from the repo root.** Commands assume the template monorepo root
-  as working directory unless the child `AGENTS.md` states otherwise.
+- Domain modules (`cyber_ops`, `legacy_audit`, `estate_defense`) must **not**
+  import `bond_api`; only `mission.py` (and manuscript/figures) bind to the
+  protocol.
+- Run `uv sync --extra dev` after editing `pyproject.toml` before pytest.
+- After `ruff check`, run `ruff format` (format --check flags otherwise).
+- Manuscript metrics are `{{VARIABLE}}`-injected, never hand-authored.
+- `output/` is git-ignored (regenerable).
+- No mocks; fixed scenario constants; no wall-clock in persisted metrics.
 
 ## Cross-refs
 
 - Project contract: [`AGENTS.md`](../../../AGENTS.md)
 - README: [`README.md`](../../../README.md)
 - TODO: [`TODO.md`](../../../TODO.md)
-- Exemplar roster: [`projects/AGENTS.md`](../../../../../AGENTS.md)
