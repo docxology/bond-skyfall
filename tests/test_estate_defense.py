@@ -143,3 +143,46 @@ class TestDefense:
     def test_covered_uncovered_sorting(self) -> None:
         plan = estate_defense_plan(DEFAULT_ESTATE, ("Mallory",))
         assert plan.covered == ("field",)  # highest-degree choke point first
+
+
+class TestRoadSymmetryInvariant:
+    """Tarjan's search assumes an undirected adjacency; enforce it.
+
+    A one-sided road used to be accepted and silently produced a wrong
+    choke-point set rather than an error — the worst kind of failure for a
+    defensive plan.
+    """
+
+    def test_one_sided_road_rejected(self) -> None:
+        with pytest.raises(ValueError, match="not mirrored"):
+            EstateGraph(
+                positions={"a": (0, 0), "b": (1, 0)},
+                roads={"a": ("b",), "b": ()},
+            )
+
+    def test_missing_reverse_entry_rejected(self) -> None:
+        with pytest.raises(ValueError, match="not mirrored"):
+            EstateGraph(positions={"a": (0, 0), "b": (1, 0)}, roads={"a": ("b",)})
+
+    def test_canonical_estate_is_symmetric(self) -> None:
+        for src, connected in DEFAULT_ESTATE.roads.items():
+            for dst in connected:
+                assert src in DEFAULT_ESTATE.roads[dst]
+
+
+class TestDefensePlanWithoutChokePoints:
+    """A graph with no articulation points yields an explicitly empty plan."""
+
+    def test_triangle_has_no_choke_points(self) -> None:
+        triangle = EstateGraph(
+            positions={"a": (0, 0), "b": (1, 0), "c": (1, 1)},
+            roads={"a": ("b", "c"), "b": ("a", "c"), "c": ("a", "b")},
+        )
+        assert choke_points(triangle) == ()
+        plan = estate_defense_plan(triangle, ("Q", "Eve"))
+        assert plan.assigned == {}
+        assert plan.covered == ()
+        assert plan.uncovered == ()
+        assert plan.defenders_used == 0
+        # No choke points means nothing to cover: coverage is 0/0, reported 0.0.
+        assert defense_coverage(plan) == 0.0

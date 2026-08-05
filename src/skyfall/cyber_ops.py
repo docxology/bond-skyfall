@@ -48,7 +48,16 @@ __all__ = [
     "DEFAULT_NETWORK",
     "DEFAULT_ENTRY",
     "DEFAULT_TARGET",
+    "DEFAULT_BASE_SURVIVAL",
+    "DEFAULT_CONTAINMENT_HOPS",
 ]
+
+#: Baseline per-hop survival probability before exposure discounting. Named so
+#: the manuscript can cite it as a token rather than hand-authoring "0.8".
+DEFAULT_BASE_SURVIVAL = 0.8
+
+#: Hop budget past which a running intrusion is treated as contained.
+DEFAULT_CONTAINMENT_HOPS = 6
 
 
 @dataclass(frozen=True)
@@ -258,7 +267,11 @@ def cheapest_intrusion_path(network: Network, entry: str, target: str) -> Intrus
     return None
 
 
-def path_success_probability(network: Network, path: IntrusionPath, base_survival: float = 0.8) -> float:
+def path_success_probability(
+    network: Network,
+    path: IntrusionPath,
+    base_survival: float = DEFAULT_BASE_SURVIVAL,
+) -> float:
     """Return the probability the intrusion traverses ``path`` uncontained.
 
     Each hop survives with probability ``base_survival * (1 - dst_exposure)``
@@ -287,8 +300,8 @@ def path_success_probability(network: Network, path: IntrusionPath, base_surviva
 def simulate_intrusion(
     network: Network,
     path: IntrusionPath,
-    base_survival: float = 0.8,
-    containment_hops: int = 6,
+    base_survival: float = DEFAULT_BASE_SURVIVAL,
+    containment_hops: int = DEFAULT_CONTAINMENT_HOPS,
 ) -> dict[str, object]:
     """Simulate a step-by-step intrusion along ``path``.
 
@@ -303,12 +316,15 @@ def simulate_intrusion(
         containment_hops: Hop index at which the intrusion is considered to
             have run long enough to risk containment (deterministic gate).
 
+    ``path`` is always non-empty: :class:`IntrusionPath` rejects an empty host
+    tuple at construction, so no defensive re-check is performed here (a guard
+    that cannot fire is worse than no guard — it reads as coverage it does not
+    provide).
+
     Returns:
         A dict with keys ``path``, ``hop_survival``, ``contained``,
         ``verdict``, ``hops``.
     """
-    if not path.hosts:
-        raise ValueError("cannot simulate an empty intrusion path")
     hop_survival: list[float] = []
     cum = 1.0
     for idx, dst in enumerate(path.hosts):

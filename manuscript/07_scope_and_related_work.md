@@ -2,30 +2,46 @@
 
 ## Scope
 
-The SILVA mission deliberately covers three computational problems that can be
-solved exactly and deterministically with classical graph and scoring
-algorithms. It explicitly does **not** attempt a full stochastic intrusion
-simulation, a live penetration test, or a physical-simulation of the estate —
-those would introduce nondeterminism that the package's reproducibility
-guarantee forbids. The value is in clean problem formulation, exact
-algorithms, and honest measurement.
+The SILVA mission deliberately covers six computational problems, across three
+layers, that can be solved exactly and deterministically with classical graph,
+statistical, and scheduling algorithms.
+
+It explicitly does **not** attempt a full stochastic intrusion simulation, a
+live penetration test, an adaptive (non-periodic) change-point detector beyond
+the two-segment likelihood, or a physical simulation of the estate — those
+would introduce nondeterminism that the package's reproducibility guarantee
+forbids. The exposure and severity models are likewise transparent linear
+scores, not calibrated empirical risk estimates: they are stated as a model,
+scoped as a model, and never presented as measurements of real infrastructure.
+The value is in clean problem formulation, exact algorithms, and honest
+measurement.
 
 ## Related work
 
-The algorithms used here are textbook:
+The algorithms used here are textbook, and the security framings they serve are
+established practice:
 
-- **BFS / Dijkstra reachability**, **simple-path enumeration**, and
-  **Edmonds–Karp max-flow / min-cut** are standard graph algorithms widely
-  used in network-intrusion and reachability analysis (Cormen et al. 2009;
-  Edmonds & Karp 1972; Ford & Fulkerson 1962).
-- **Tarjan's articulation-point algorithm** finds cut vertices / choke points
-  in a graph, used in network resilience and defensive-planning domains
-  (Even 2011).
-- **CUSUM change-point detection** (Page 1954; Hawkins & Olwell 1999)
-  underpins the traffic detector.
-- **Weighted risk scoring** and **greedy priority scheduling** mirror common
-  vulnerability-management and scheduling practice (Pinedo 2016), kept
-  transparent and deterministic.
+- **Simple-path enumeration for intrusion reachability** is the core of the
+  attack-graph literature: enumerating the routes an adversary can take through
+  a networked system, then reasoning over that set (Phillips & Swiler 1998;
+  Sheyner et al. 2002).
+- **BFS / Dijkstra reachability** (Dijkstra 1959; Cormen et al. 2009) supply
+  the minimum-hop and minimum-difficulty routes, and **Edmonds–Karp max-flow
+  with the max-flow min-cut theorem** (Edmonds & Karp 1972; Ford & Fulkerson
+  1962) supplies the exfiltration severance.
+- **Tarjan's articulation-point algorithm** (Tarjan 1972; Hopcroft & Tarjan
+  1973; Even 2011) finds cut vertices — the choke points — and is standard in
+  network-resilience and defensive-planning work.
+- **CUSUM change-point detection** (Page 1954; Montgomery 2012; Hawkins &
+  Olwell 1998) underpins the traffic detector; the two-segment likelihood split
+  is the single-change-point special case of the segmentation objective treated
+  at scale by Killick et al. (2012).
+- **Weighted multi-factor vulnerability scoring** follows the structure of
+  CVSS-style composite metrics (Mell, Scarfone & Romanosky 2007), kept
+  deliberately simpler and fully transparent here.
+- **Patch scheduling under a finite budget** is a real operational tradeoff
+  studied directly by Beattie et al. (2002); the greedy severity-first policy
+  is standard priority scheduling (Pinedo 2016).
 
 Where the film's narrative maps onto these tools, this package documents the
 mapping so a reader can trace every metric to its algorithm.

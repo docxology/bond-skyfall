@@ -164,3 +164,85 @@ class TestSimulate:
         assert sim["hops"] == 0
         assert sim["path"] == ("internet",)
         assert sim["hop_survival"] == [1.0]
+
+
+class TestNamedModelConstants:
+    """The survival/containment defaults are named so the manuscript can cite them."""
+
+    def test_defaults_are_the_named_constants(self) -> None:
+        from skyfall.cyber_ops import DEFAULT_BASE_SURVIVAL, DEFAULT_CONTAINMENT_HOPS
+
+        path = shortest_intrusion_path(DEFAULT_NETWORK, DEFAULT_ENTRY, DEFAULT_TARGET)
+        assert path is not None
+        assert path_success_probability(DEFAULT_NETWORK, path) == path_success_probability(
+            DEFAULT_NETWORK, path, base_survival=DEFAULT_BASE_SURVIVAL
+        )
+        assert simulate_intrusion(DEFAULT_NETWORK, path) == simulate_intrusion(
+            DEFAULT_NETWORK,
+            path,
+            base_survival=DEFAULT_BASE_SURVIVAL,
+            containment_hops=DEFAULT_CONTAINMENT_HOPS,
+        )
+
+
+class TestCheapestPathClaims:
+    """Pin the claims the results section makes about the cheapest route."""
+
+    def test_legacy_directory_is_not_on_the_cheapest_path(self) -> None:
+        """The manuscript asserts the expensive legacy pivot is never cheapest."""
+        cheapest = cheapest_intrusion_path(DEFAULT_NETWORK, DEFAULT_ENTRY, DEFAULT_TARGET)
+        assert cheapest is not None
+        assert "legacy_ldap" not in cheapest.hosts
+
+    def test_legacy_directory_does_appear_on_some_simple_path(self) -> None:
+        """Negative control: the pivot is reachable, so its absence is a result."""
+        paths = intrusion_paths(DEFAULT_NETWORK, DEFAULT_ENTRY, DEFAULT_TARGET)
+        assert any("legacy_ldap" in p.hosts for p in paths)
+
+    def test_stale_dijkstra_heap_entry_is_skipped(self) -> None:
+        """A node re-reached more cheaply must not be expanded twice."""
+        network = build_network(
+            nodes=[],
+            edges={"s": ("a", "b"), "a": ("b",), "b": ("t",), "t": ()},
+            edge_cost={("s", "a"): 1.0, ("s", "b"): 9.0, ("a", "b"): 1.0, ("b", "t"): 1.0},
+        )
+        cheapest = cheapest_intrusion_path(network, "s", "t")
+        assert cheapest is not None
+        assert cheapest.hosts == ("s", "a", "b", "t")
+
+    def test_cheapest_returns_none_when_unreachable(self) -> None:
+        network = build_network(nodes=[], edges={"s": (), "t": ()})
+        assert cheapest_intrusion_path(network, "s", "t") is None
+
+    def test_enumeration_skips_revisits(self) -> None:
+        """A cycle must not produce an unbounded path list."""
+        network = build_network(nodes=[], edges={"s": ("a",), "a": ("s", "t"), "t": ()})
+        paths = intrusion_paths(network, "s", "t")
+        assert [p.hosts for p in paths] == [("s", "a", "t")]
+
+
+class TestNetworkEdgeSourceValidation:
+    def test_unknown_edge_source_raises(self) -> None:
+        from skyfall.cyber_ops import Network
+
+        with pytest.raises(ValueError, match="edge source"):
+            Network(nodes={"a": Node("a", "host")}, edges={"ghost": ("a",)})
+
+
+class TestDijkstraStaleHeapEntries:
+    """A node re-reached more cheaply must not be expanded from a stale entry."""
+
+    def test_stale_entry_is_discarded(self) -> None:
+        network = build_network(
+            nodes=[],
+            edges={"s": ("a", "b"), "a": ("b",), "b": ("t",), "t": ()},
+            edge_cost={
+                ("s", "a"): 1.0,
+                ("s", "b"): 9.0,  # pushed first, superseded by s->a->b at cost 2
+                ("a", "b"): 1.0,
+                ("b", "t"): 8.0,  # expensive enough that the stale (9, b) is popped
+            },
+        )
+        cheapest = cheapest_intrusion_path(network, "s", "t")
+        assert cheapest is not None
+        assert cheapest.hosts == ("s", "a", "b", "t")

@@ -32,6 +32,7 @@ from .cyber_ops import (
     DEFAULT_ENTRY,
     DEFAULT_NETWORK,
     DEFAULT_TARGET,
+    Network,
     cheapest_intrusion_path,
     intrusion_paths,
     path_success_probability,
@@ -68,7 +69,14 @@ from .traffic_analysis import (
     analyze_traffic,
 )
 
-__all__ = ["MissionProvider", "register_gadgets", "SILVA_SEED", "PACKAGE_VERSION"]
+__all__ = [
+    "MissionProvider",
+    "register_gadgets",
+    "SILVA_SEED",
+    "PACKAGE_VERSION",
+    "DEFENDERS",
+    "REMEDIATION_BUDGET",
+]
 
 #: Deterministic seed for provenance (no randomness is actually drawn).
 SILVA_SEED = 11
@@ -78,6 +86,11 @@ PACKAGE_VERSION = "0.1.0"
 
 #: Defender call signs for the estate defense plan.
 DEFENDERS = ("Mallory", "Tanner", "Q", "Eve")
+
+#: Remediation actions the mission can fund in one cycle. Single source of
+#: truth for both the mission outcome and the manuscript token, so the two can
+#: never disagree about how large the budget was.
+REMEDIATION_BUDGET = 3
 
 
 def _input_hash() -> str:
@@ -113,6 +126,17 @@ class MissionProvider:  # noqa: N801 — class name fixed by the discovery contr
 
     film = "skyfall"
 
+    def __init__(self, *, network: Network | None = None) -> None:
+        """Bind the provider to a network, defaulting to the canonical one.
+
+        ``MissionProvider()`` — the form the BOND discovery contract uses — is
+        unchanged and still yields the frozen SILVA scenario. The keyword-only
+        override exists so the degraded path (target unreachable) can be
+        exercised by a real network rather than left as an untestable
+        fallback.
+        """
+        self._network = network if network is not None else DEFAULT_NETWORK
+
     def brief(self) -> MissionBrief:
         """Declare the SILVA mission: linked cyber, legacy, and defense objectives."""
         return MissionBrief(
@@ -127,7 +151,7 @@ class MissionProvider:  # noqa: N801 — class name fixed by the discovery contr
                 "plan the Skyfall estate defense from its choke points",
             ),
             assets=(
-                Asset(kind="network", name="mi6_hq", payload={"nodes": len(DEFAULT_NETWORK.nodes)}),
+                Asset(kind="network", name="mi6_hq", payload={"nodes": len(self._network.nodes)}),
                 Asset(kind="fleet", name="legacy_systems", payload={"size": len(default_legacy_fleet())}),
                 Asset(kind="graph", name="estate", payload={"positions": len(DEFAULT_ESTATE.positions)}),
                 Asset(kind="flow", name="exfil_network", payload={"nodes": len(DEFAULT_FLOW_NETWORK.nodes)}),
@@ -141,16 +165,13 @@ class MissionProvider:  # noqa: N801 — class name fixed by the discovery contr
 
     def recon(self, request: ReconRequest) -> ReconReport:
         """Survey the six threat surfaces and the mission constraints."""
-        from .patch_strategy import DEFAULT_VULNERABILITIES
-        from .traffic_analysis import EXFIL_WINDOW
-
         return ReconReport(
             findings=(
                 Finding(label="entry", detail=DEFAULT_ENTRY),
                 Finding(label="target", detail=DEFAULT_TARGET),
                 Finding(
                     label="intrusion_paths",
-                    detail=f"{len(intrusion_paths(DEFAULT_NETWORK, DEFAULT_ENTRY, DEFAULT_TARGET))} simple paths",
+                    detail=f"{len(intrusion_paths(self._network, DEFAULT_ENTRY, DEFAULT_TARGET))} simple paths",
                 ),
                 Finding(
                     label="exfil_window",
@@ -188,16 +209,21 @@ class MissionProvider:  # noqa: N801 — class name fixed by the discovery contr
     def execute(self, plan: MissionPlan) -> MissionOutcome:
         """Run the plan against the real domain modules, deterministically."""
         # Cyber: shortest + cheapest intrusion path against the HQ network.
-        shortest = shortest_intrusion_path(DEFAULT_NETWORK, DEFAULT_ENTRY, DEFAULT_TARGET)
-        cheapest = cheapest_intrusion_path(DEFAULT_NETWORK, DEFAULT_ENTRY, DEFAULT_TARGET)
+        shortest = shortest_intrusion_path(self._network, DEFAULT_ENTRY, DEFAULT_TARGET)
+        cheapest = cheapest_intrusion_path(self._network, DEFAULT_ENTRY, DEFAULT_TARGET)
         shortcut = shortest.hosts if shortest else ()
         cheap = cheapest.hosts if cheapest else ()
         if shortest is not None:
-            success = path_success_probability(DEFAULT_NETWORK, shortest)
-            sim = simulate_intrusion(DEFAULT_NETWORK, shortest)
+            success = path_success_probability(self._network, shortest)
+            sim = simulate_intrusion(self._network, shortest)
         else:
+            # The primary objective could not be modelled at all. Reporting a
+            # stubbed simulation under success=True would be a silent failure:
+            # a consumer reading the outcome would see a well-formed result
+            # for an analysis that never ran.
             success = 0.0
             sim = {"path": (), "contained": True, "verdict": "unreachable", "hops": 0}
+        reachable = shortest is not None
 
         # Detection: CUSUM over the HQ traffic series.
         traffic = analyze_traffic()
@@ -207,7 +233,7 @@ class MissionProvider:  # noqa: N801 — class name fixed by the discovery contr
 
         # Legacy: full fleet audit and a prioritized remediation budget.
         fleet = audit_fleet(default_legacy_fleet().values())
-        remediation = prioritize_remediation(default_legacy_fleet().values(), budget=3)
+        remediation = prioritize_remediation(default_legacy_fleet().values(), budget=REMEDIATION_BUDGET)
 
         # Maintenance: greedy patch schedule under the daily budget.
         patches = analyze_patch_schedule()
@@ -264,7 +290,7 @@ class MissionProvider:  # noqa: N801 — class name fixed by the discovery contr
             },
         }
         return MissionOutcome(
-            success=True,
+            success=reachable,
             results=results,
             provenance=Provenance(
                 package_version=PACKAGE_VERSION,

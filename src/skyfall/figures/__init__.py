@@ -107,11 +107,21 @@ def render_estate_defense_figure(
 
 
 def defense_coverage_fraction(plan: object) -> float:
-    """Return the defensive-coverage fraction from a DefensePlan (as a float)."""
+    """Return the defensive-coverage fraction of a :class:`DefensePlan`.
+
+    Deliberately typed ``object`` with an explicit ``isinstance`` gate: this
+    is the figure layer's only entry point taking a domain object, it is
+    reachable from the manuscript orchestrator, and a duck-typed near-miss
+    would otherwise render a plausible but wrong coverage label onto the
+    flagship figure.
+
+    Raises:
+        TypeError: if ``plan`` is not a :class:`DefensePlan`.
+    """
     from ..estate_defense import DefensePlan, defense_coverage
 
     if not isinstance(plan, DefensePlan):
-        raise TypeError("expected a DefensePlan")
+        raise TypeError(f"expected a DefensePlan, got {type(plan).__name__}")
     return defense_coverage(plan)
 
 

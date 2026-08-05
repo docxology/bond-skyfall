@@ -109,9 +109,10 @@ def island_topology(island: IslandGrid) -> IslandTopology:
     Returns:
         An :class:`IslandTopology`.
     """
+    # ``IslandGrid.__post_init__`` already rejects an impassable entry, so no
+    # re-check is performed here: a guard that cannot fire reads as coverage it
+    # does not provide.
     entry = island.entry
-    if not island.is_passable(*entry):
-        raise ValueError("island entry must be passable")
     visited: set[tuple[int, int]] = {entry}
     queue: deque[tuple[int, int]] = deque([entry])
     dist: dict[tuple[int, int], int] = {entry: 0}
@@ -142,7 +143,10 @@ class EstateGraph:
 
     ``positions`` maps a position name to its (row, col) or label coordinate;
     ``roads`` maps a position to the tuple of connected positions. Edges are
-    symmetric: ``(a, b)`` implies ``(b, a)``.
+    symmetric: ``(a, b)`` implies ``(b, a)``, and that invariant is *enforced*
+    at construction — Tarjan's articulation search assumes an undirected
+    adjacency, so a one-sided road would silently yield a wrong choke-point
+    set rather than an error.
     """
 
     positions: dict[str, tuple[int, int]]
@@ -150,7 +154,7 @@ class EstateGraph:
 
     def __post_init__(self) -> None:
         for name, (row, col) in self.positions.items():
-            if not 0 <= row or not 0 <= col:
+            if row < 0 or col < 0:
                 raise ValueError(f"position {name!r} has invalid coordinates")
         for a, connected in self.roads.items():
             if a not in self.positions:
@@ -158,6 +162,8 @@ class EstateGraph:
             for b in connected:
                 if b not in self.positions:
                     raise ValueError(f"road destination {b!r} is not a known position")
+                if a not in self.roads.get(b, ()):
+                    raise ValueError(f"road {a!r} -> {b!r} is not mirrored by {b!r} -> {a!r}")
 
     def neighbours(self, node: str) -> tuple[str, ...]:
         """Return the connected positions of ``node`` (empty if unknown)."""

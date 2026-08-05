@@ -140,3 +140,76 @@ def test_manuscript_variables_json_smoke(tmp_path: Path):
     payload = json.dumps(vars_, sort_keys=True, indent=2)
     assert json.loads(payload) == vars_
     assert (tmp_path / "x.json").write_text(payload, encoding="utf-8") > 0
+
+
+class TestStrictGates:
+    def test_bad_mission_section_raises(self, tmp_path: Path) -> None:
+        from skyfall.manuscript_variables import generate_variables
+
+        cfg = _write(tmp_path, 'paper:\n  film: "skyfall"\nmission: []\n')
+        with pytest.raises(ValueError, match="mission"):
+            generate_variables(config_path=cfg)
+
+    def test_require_outputs_false_is_permissive(self) -> None:
+        """`require_outputs=False` skips the reachability gate but still resolves."""
+        from skyfall.manuscript_variables import generate_variables
+
+        variables = generate_variables(require_outputs=False)
+        assert variables["SILVA_SHORTEST_HOPS"] == "5"
+
+
+class TestResultsProseHasNoHandAuthoredMetrics:
+    """Every quantity in the results narrative must arrive as a token.
+
+    Scans the numbered manuscript sections for bare numerals outside token
+    braces, inline code, and math. Anything left is a number a human typed —
+    exactly the drift this package's variable pipeline exists to prevent.
+    """
+
+    #: Four-digit calendar years (film release, citation year) are literals, not
+    #: measurements — nothing in the code could make them drift.
+    _YEAR = re.compile(r"^(?:19|20)\d{2}$")
+
+    def test_no_bare_numerals_in_results_and_methodology(self) -> None:
+        bare = re.compile(r"(?<![\w.:/{-])\d+(?:\.\d+)?(?![\w.}%-])")
+        offenders: list[str] = []
+        for name in ("02_methodology.md", "03_results.md", "04_conclusion.md", "00_abstract.md"):
+            text = (PACKAGE_ROOT / "manuscript" / name).read_text(encoding="utf-8")
+            # Strip resolved-token placeholders, inline code, and math spans.
+            text = re.sub(r"\{\{[A-Z0-9_]+\}\}", " ", text)
+            text = re.sub(r"`[^`]*`", " ", text)
+            text = re.sub(r":math:`[^`]*`", " ", text)
+            text = re.sub(r"\]\([^)]*\)", " ", text)  # image/link targets
+            text = re.sub(r"\{#[^}]*\}", " ", text)
+            for line in text.splitlines():
+                for match in bare.finditer(line):
+                    if self._YEAR.match(match.group(0)):
+                        continue
+                    offenders.append(f"{name}: {match.group(0)!r} in {line.strip()!r}")
+        assert not offenders, "hand-authored numerals in manuscript prose:\n" + "\n".join(offenders)
+
+
+class TestReachabilityGate:
+    """The strict-mode gate is a real branch, tested at its own seam.
+
+    With the frozen network the target is always reachable, so testing this
+    through `generate_variables` alone would be impossible and the branch
+    would sit permanently uncovered.
+    """
+
+    def test_none_path_raises(self) -> None:
+        from skyfall.manuscript_variables import require_reachable
+
+        with pytest.raises(ValueError, match="unreachable"):
+            require_reachable(None)
+
+    def test_real_path_passes(self) -> None:
+        from skyfall.cyber_ops import (
+            DEFAULT_ENTRY,
+            DEFAULT_NETWORK,
+            DEFAULT_TARGET,
+            shortest_intrusion_path,
+        )
+        from skyfall.manuscript_variables import require_reachable
+
+        require_reachable(shortest_intrusion_path(DEFAULT_NETWORK, DEFAULT_ENTRY, DEFAULT_TARGET))

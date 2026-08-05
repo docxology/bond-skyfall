@@ -26,16 +26,22 @@ mission:
 keywords:
   - "cyberattack simulation"
   - "network intrusion paths"
+  - "attack graph reachability"
   - "traffic change-point detection"
   - "CUSUM control chart"
+  - "periodic baseline residualization"
+  - "data exfiltration containment"
   - "max-flow min-cut severance"
+  - "Edmonds-Karp"
   - "legacy vulnerability audit"
   - "aging infrastructure exposure"
+  - "weighted risk scoring"
   - "patch scheduling"
   - "island hideout topology"
   - "choke-point defense planning"
   - "articulation points"
-  - "mission software"
+  - "Tarjan biconnectivity"
+  - "deterministic mission software"
 
 metadata:
   license: "MIT"

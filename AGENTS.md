@@ -42,21 +42,59 @@ contract (film `skyfall`, codename `SILVA`) and `register_gadgets()` binds six
 gadgets (intrusion / traffic / severance / audit / patch / estate) into
 `bond_api.registry.GadgetRegistry`. The orchestration discovery convention
 expects this module importable as `skyfall.mission` exposing
-`MissionProvider`, which it does.
+`MissionProvider`, which it does. Stage-by-stage detail, and the exact list of
+what may not change, are in `docs/architecture.md`.
+
+`MissionProvider.execute()` reports `success` honestly: it is `True` only when
+the primary objective could actually be modelled. A provider bound to a network
+in which the target is unreachable returns `success=False` with an explicit
+`"unreachable"` verdict rather than a well-formed outcome wrapping a stub.
 
 The pure domain modules import nothing from `bond_api` — they are standalone
 (stdlib + math only), so the film's core remains usable even if the path
 dependency is unavailable. `mission.py` is the thin protocol adapter, and the
-`skyfall` facade deliberately does not eagerly import it (see `src/AGENTS.md`).
+`skyfall` facade deliberately does not eagerly import it (see `src/AGENTS.md`);
+a subprocess test enforces that.
+
+## Build, test, verify
+
+```bash
+cd projects/working/bond/skyfall
+uv sync --extra dev
+
+# Gates — all three must pass.
+uv run pytest tests/ --cov=src --cov-fail-under=90
+uv run ruff check src/ scripts/ tests/ && uv run ruff format --check src/ scripts/ tests/
+uv run mypy src/ scripts/
+
+# Protocol + artifact checks.
+uv run python scripts/00_preflight.py skyfall
+uv run python scripts/z_generate_manuscript_variables.py
+uv run python scripts/run_mission.py all --json
+
+# Hygiene.
+rg -n "template[_]code_project" . --glob '!uv.lock' --glob '!.git/**' || echo Clean
+git status --short
+```
+
+Coverage is a floor (90%, line + branch on `src/`), not an advertised figure —
+run the gate for the live number rather than trusting one quoted in prose. A
+`Failed to initialize cache` error from `uv` is a sandbox restriction, not a
+package failure; re-run with the sandbox disabled.
 
 ## Reproducibility
 
-- Fixed scenario constants: the MI6 network, legacy fleet, estate graph, and
-  island grid are hardcoded and never vary.
-- No random draws; `SILVA_SEED = 11` recorded only in provenance.
+- Fixed scenario constants: the MI6 network, traffic series, exfiltration flow
+  network, legacy fleet, vulnerability backlog, estate graph, and island grid
+  are hardcoded and never vary.
+- No random draws; `SILVA_SEED = 11` is recorded only in provenance, and the
+  provenance test asserts it.
 - No wall-clock in any persisted metric (the sole exception is
-  `GENERATION_TIMESTAMP`, a build label).
-- The flagship estate-defense figure renders byte-identically across runs.
+  `GENERATION_TIMESTAMP`, a build label that enters no result).
+- Both figures render byte-identically across runs, asserted by comparing bytes
+  from two renders.
+- Every manuscript metric is injected from `manuscript_variables.py`; the suite
+  fails on an unresolved token *and* on a bare numeral in the results prose.
 
 ## Local-only
 

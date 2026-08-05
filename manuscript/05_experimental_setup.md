@@ -10,10 +10,28 @@
 
 ## Scenario configuration
 
-The scenario is fixed so results are reproducible: entry host
-`{{SILVA_ENTRY}}`, target `{{SILVA_TARGET}}`, a defending team of
-`{{SILVA_NUM_DEFENDERS}}` call signs, a remediation budget of three legacy
-actions, per-hop survival baseline 0.8, and a containment budget of six hops.
+The scenario is fixed so results are reproducible. Every parameter below is a
+named constant in `src/skyfall/`, surfaced here as an injected token rather
+than transcribed by hand.
+
+| Parameter | Value | Source constant |
+| --- | --- | --- |
+| Entry host | `{{SILVA_ENTRY}}` | `cyber_ops.DEFAULT_ENTRY` |
+| Target | `{{SILVA_TARGET}}` | `cyber_ops.DEFAULT_TARGET` |
+| Network size | {{SILVA_NUM_NETWORK_NODES}} nodes | `cyber_ops.DEFAULT_NETWORK` |
+| Per-hop survival baseline | {{SILVA_BASE_SURVIVAL}} | `cyber_ops.DEFAULT_BASE_SURVIVAL` |
+| Containment budget | {{SILVA_CONTAINMENT_HOPS}} hops | `cyber_ops.DEFAULT_CONTAINMENT_HOPS` |
+| Traffic series | {{SILVA_TRAFFIC_SAMPLES}} hourly samples | `traffic_analysis.DEFAULT_TRAFFIC` |
+| Baseline window / period | {{SILVA_BASELINE_WINDOW}} / {{SILVA_TRAFFIC_PERIOD}} hours | `traffic_analysis.DEFAULT_BASELINE_WINDOW`, `DEFAULT_PERIOD` |
+| CUSUM allowance / interval | {{SILVA_CUSUM_K}} / {{SILVA_CUSUM_H}} | `traffic_analysis.DEFAULT_CUSUM_K`, `DEFAULT_CUSUM_H` |
+| Exfiltration network | {{SILVA_NUM_FLOW_NODES}} nodes | `exfiltration.DEFAULT_FLOW_NETWORK` |
+| Legacy fleet | {{SILVA_FLEET_SIZE}} systems | `legacy_audit.default_legacy_fleet` |
+| Exposure weights | {{SILVA_EXPOSURE_WEIGHTS}} | `legacy_audit.EXPOSURE_WEIGHTS` |
+| Exposure saturation scales | {{SILVA_EXPOSURE_SCALES}} | `legacy_audit.EXPOSURE_SCALES` |
+| Remediation budget | {{SILVA_REMEDIATION_BUDGET}} actions | `mission.REMEDIATION_BUDGET` |
+| Patch horizon / daily budget | {{SILVA_HORIZON_DAYS}} days / {{SILVA_DAILY_BUDGET}} | `patch_strategy.DEFAULT_HORIZON_DAYS`, `DEFAULT_DAILY_BUDGET` |
+| Estate | {{SILVA_NUM_ESTATE_POSITIONS}} positions | `estate_defense.DEFAULT_ESTATE` |
+| Defending team | {{SILVA_NUM_DEFENDERS}} call signs | `mission.DEFENDERS` |
 
 ## Running the mission
 

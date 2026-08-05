@@ -28,8 +28,29 @@ __all__ = [
     "exposure_score",
     "audit_fleet",
     "prioritize_remediation",
+    "risk_factors",
     "EXPOSURE_THRESHOLDS",
+    "EXPOSURE_WEIGHTS",
+    "EXPOSURE_SCALES",
 ]
+
+#: Linear weights of the four exposure factors. Named (rather than inlined at
+#: the two call sites that used to duplicate them) so the manuscript can cite
+#: the weighting as a token and the audit and the remediation ranker can never
+#: drift apart.
+EXPOSURE_WEIGHTS: dict[str, float] = {
+    "age": 0.25,
+    "patch": 0.35,
+    "protocol": 0.20,
+    "surface": 0.20,
+}
+
+#: Saturation scales: the value at which each raw factor reaches 1.0.
+EXPOSURE_SCALES: dict[str, float] = {
+    "age_years": 25.0,
+    "protocol_era": 3.0,
+    "open_services": 6.0,
+}
 
 
 @dataclass(frozen=True)
@@ -80,33 +101,51 @@ EXPOSURE_THRESHOLDS: tuple[tuple[float, str], ...] = (
 
 
 def _tier(score: float) -> str:
-    for threshold, label in EXPOSURE_THRESHOLDS:
+    """Map an exposure score onto its :data:`EXPOSURE_THRESHOLDS` tier label.
+
+    The final tier is open-ended, so it is returned by falling out of the loop
+    rather than by a sentinel comparison — the previous ``float("inf")``
+    comparison made the fall-through branch unreachable dead code.
+    """
+    for threshold, label in EXPOSURE_THRESHOLDS[:-1]:
         if score < threshold:
             return label
-    return "critical"
+    return EXPOSURE_THRESHOLDS[-1][1]
+
+
+def risk_factors(system: LegacySystem) -> dict[str, float]:
+    """Return the four normalized, *unweighted* risk factors of a system.
+
+    Each factor saturates at 1.0 per :data:`EXPOSURE_SCALES`:
+
+    * ``age`` — ``min(age_years / 25, 1)``: older systems are more obsolete;
+    * ``patch`` — ``1 - patch_level``: more unpatched = more at risk;
+    * ``protocol`` — ``min(protocol_era / 3, 1)``: obsolete transports;
+    * ``surface`` — ``min(open_services / 6, 1)``: externally reachable services.
+
+    This is the single definition both :func:`exposure_score` and the
+    remediation ranker consume, so the two cannot disagree about the model.
+    """
+    return {
+        "age": min(system.age_years / EXPOSURE_SCALES["age_years"], 1.0),
+        "patch": 1.0 - system.patch_level,
+        "protocol": min(system.protocol_era / EXPOSURE_SCALES["protocol_era"], 1.0),
+        "surface": min(system.open_services / EXPOSURE_SCALES["open_services"], 1.0),
+    }
 
 
 def exposure_score(system: LegacySystem) -> float:
     """Return the deterministic exposure score of a single legacy system.
 
-    The score blends four independent risk factors, each normalized to
-    ``[0, 1]`` and linearly combined with fixed weights:
-
-    * age ::math:`s_a = min(age / 25, 1)` — older systems are more obsolete;
-    * unpatched ::math:`s_p = 1 - patch_level` — more unpatched = more at risk;
-    * protocol ::math:`s_r = min(protocol_era / 3, 1)` — obsolete protocols;
-    * surface ::math:`s_s = min(open_services / 6, 1)` — more services exposed.
-
-    Weights: age 0.25, unpatched 0.35, protocol 0.20, surface 0.20.
+    The four :func:`risk_factors` are linearly combined with the fixed
+    :data:`EXPOSURE_WEIGHTS` (age 0.25, unpatched 0.35, protocol 0.20,
+    surface 0.20).
 
     Returns:
-        A score in ``[0, 1]``.
+        A score in ``[0, 1]``, rounded to four decimal places.
     """
-    s_age = min(system.age_years / 25.0, 1.0)
-    s_patch = 1.0 - system.patch_level
-    s_proto = min(system.protocol_era / 3.0, 1.0)
-    s_surf = min(system.open_services / 6.0, 1.0)
-    return round(0.25 * s_age + 0.35 * s_patch + 0.20 * s_proto + 0.20 * s_surf, 4)
+    factors = risk_factors(system)
+    return round(sum(EXPOSURE_WEIGHTS[name] * value for name, value in factors.items()), 4)
 
 
 @dataclass(frozen=True)
@@ -187,18 +226,15 @@ class RemediationAction:
 
 
 def _worst_reduction(system: LegacySystem) -> float:
-    """Best single-source risk reduction for a system (its dominant gap)."""
-    s_age = min(system.age_years / 25.0, 1.0)
-    s_patch = 1.0 - system.patch_level
-    s_proto = min(system.protocol_era / 3.0, 1.0)
-    s_surf = min(system.open_services / 6.0, 1.0)
-    factors = {
-        "patch": 0.35 * s_patch,
-        "protocol": 0.20 * s_proto,
-        "surface": 0.20 * s_surf,
-        "age": 0.25 * s_age,
-    }
-    return max(factors.values())
+    """Best single-source risk reduction for a system (its dominant gap).
+
+    Closing a system's dominant gap removes that factor's *weighted*
+    contribution to :func:`exposure_score`, so the reduction is the maximum of
+    the weighted factors — computed from the same :func:`risk_factors` the
+    score uses.
+    """
+    factors = risk_factors(system)
+    return max(EXPOSURE_WEIGHTS[name] * value for name, value in factors.items())
 
 
 def prioritize_remediation(systems: Iterable[LegacySystem], budget: int | None = None) -> tuple[RemediationAction, ...]:
@@ -224,8 +260,12 @@ def prioritize_remediation(systems: Iterable[LegacySystem], budget: int | None =
     while remaining:
         if budget is not None and count >= budget:
             break
-        # Deterministic pick: highest reduction, then lexicographic id.
-        chosen = max(remaining.values(), key=lambda s: (_worst_reduction(s), -ord(s.system_id[0])))
+        # Deterministic pick: highest reduction, then lexicographically
+        # smallest id. ``min`` over a negated reduction gives a total order on
+        # the *whole* id; the previous ``-ord(id[0])`` key only compared the
+        # first character, so ids sharing a first letter tied and the winner
+        # fell out of dict insertion order.
+        chosen = min(remaining.values(), key=lambda s: (-_worst_reduction(s), s.system_id))
         reduction = _worst_reduction(chosen)
         actions.append(RemediationAction(system_id=chosen.system_id, risk_reduction=round(reduction, 4)))
         del remaining[chosen.system_id]

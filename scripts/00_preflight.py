@@ -32,8 +32,11 @@ def main() -> int:
     if missing:
         print(f"FAIL: provider {slug!r} missing methods {missing}")
         return 1
+    # Report what was actually verified. Printing len(missing) here would
+    # always read "0" — a number that cannot vary is not evidence.
     print(
-        f"OK: {slug} discoverable, {len(missing)} missing methods, {len(surface['dataclasses'])} protocol dataclasses"
+        f"OK: {slug} discoverable, {len(expected)}/{len(expected)} provider methods bound, "
+        f"{len(surface['dataclasses'])} protocol dataclasses"
     )
     return 0
 

@@ -13,6 +13,7 @@ from skyfall.legacy_audit import (
     EXPOSURE_THRESHOLDS,
     FleetAudit,
     LegacySystem,
+    RemediationAction,
     audit_fleet,
     default_legacy_fleet,
     exposure_score,
@@ -109,3 +110,83 @@ class TestThresholds:
             scores={}, tiers={}, tier_counts={}, mean_exposure=0.0, max_exposure=0.0, critical_count=0, fleet_size=0
         )
         assert a.risk() == "low"
+
+
+class TestRiskFactors:
+    """The factor model is the single definition the score and ranker share."""
+
+    def test_factors_are_normalized(self) -> None:
+        from skyfall.legacy_audit import risk_factors
+
+        system = LegacySystem("x", "X", age_years=100, patch_level=0.0, protocol_era=99, open_services=99)
+        factors = risk_factors(system)
+        assert set(factors) == {"age", "patch", "protocol", "surface"}
+        assert all(0.0 <= value <= 1.0 for value in factors.values())
+        # Fully saturated on every axis.
+        assert factors == {"age": 1.0, "patch": 1.0, "protocol": 1.0, "surface": 1.0}
+
+    def test_score_is_the_weighted_sum_of_the_factors(self) -> None:
+        from skyfall.legacy_audit import EXPOSURE_WEIGHTS, risk_factors
+
+        system = LegacySystem("y", "Y", age_years=12, patch_level=0.4, protocol_era=2, open_services=3)
+        factors = risk_factors(system)
+        expected = round(sum(EXPOSURE_WEIGHTS[k] * v for k, v in factors.items()), 4)
+        assert exposure_score(system) == expected
+
+    def test_weights_sum_to_one(self) -> None:
+        from skyfall.legacy_audit import EXPOSURE_WEIGHTS
+
+        assert abs(sum(EXPOSURE_WEIGHTS.values()) - 1.0) < 1e-12
+
+
+class TestFleetRiskLabels:
+    """`FleetAudit.risk()` has four outcomes; exercise each, not just the default."""
+
+    @staticmethod
+    def _audit(mean: float, critical: int) -> FleetAudit:
+        return FleetAudit(
+            scores={"a": mean},
+            tiers={},
+            tier_counts={},
+            mean_exposure=mean,
+            max_exposure=mean,
+            critical_count=critical,
+            fleet_size=1,
+        )
+
+    def test_critical_dominates(self) -> None:
+        assert self._audit(0.1, 1).risk() == "critical"
+
+    def test_high_band(self) -> None:
+        assert self._audit(0.6, 0).risk() == "high"
+        assert self._audit(0.95, 0).risk() == "high"
+
+    def test_medium_band(self) -> None:
+        assert self._audit(0.4, 0).risk() == "medium"
+        assert self._audit(0.59, 0).risk() == "medium"
+
+    def test_low_band(self) -> None:
+        assert self._audit(0.39, 0).risk() == "low"
+
+
+class TestRemediationTieBreak:
+    """Ties must break on the whole id, not just its first character.
+
+    The ranker previously keyed on ``-ord(system_id[0])``, so systems sharing
+    a first letter compared equal and the winner fell out of dict insertion
+    order. These two systems are identical apart from their ids.
+    """
+
+    @staticmethod
+    def _twins(order: tuple[str, str]) -> tuple[RemediationAction, ...]:
+        systems = [
+            LegacySystem(sid, sid.upper(), age_years=10, patch_level=0.5, protocol_era=1, open_services=3)
+            for sid in order
+        ]
+        return prioritize_remediation(systems, budget=1)
+
+    def test_lexicographically_smallest_id_wins(self) -> None:
+        assert self._twins(("ldap_alpha", "ldap_beta"))[0].system_id == "ldap_alpha"
+
+    def test_result_is_insertion_order_independent(self) -> None:
+        assert self._twins(("ldap_alpha", "ldap_beta")) == self._twins(("ldap_beta", "ldap_alpha"))

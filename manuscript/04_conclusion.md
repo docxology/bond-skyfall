@@ -12,5 +12,17 @@ choke-point coverage plan.
 
 The real value is the discipline the package enforces: pure domain modules,
 deterministic provenance, live manuscript-variable injection, and zero-mock
-tests at ≥90% coverage. The mission provider is discoverable by the BOND suite
-and its gadgets are registered for orchestration.
+tests held above a hard coverage floor. The mission provider is discoverable by
+the BOND suite and its gadgets are registered for orchestration.
+
+That discipline is not decorative. Two of this package's guarantees only became
+true because a test was written to break them first. The max-flow min-cut
+routine passed on the canonical acyclic scenario while computing residual
+reachability incorrectly; only an enumerated sweep over networks that *need*
+reverse residual arcs exposed the gap between what the docstring claimed and
+what the code did. The remediation ranker's documented lexicographic
+tie-breaking compared only the first character of a system id, so the ordering
+silently depended on fleet insertion order. Neither defect was visible from the
+mission outcome, both were visible from a test designed to fail. A scenario
+that always passes measures the scenario, not the algorithm — the standing
+lesson this package records for the rest of the fleet.

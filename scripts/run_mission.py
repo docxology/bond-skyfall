@@ -4,9 +4,14 @@
 Usage:
     uv run python scripts/run_mission.py {brief|recon|plan|execute|debrief|all} [--json]
 
-Discovers the skyfall mission provider on ``src/``, runs the requested phase
-of the five-stage lifecycle, and prints a human-readable (or ``--json``)
-summary. Exit code is 0 on success, 2 on argparse error, 1 on provider error.
+Binds the skyfall mission provider from ``src/`` and always runs the complete
+five-stage lifecycle (each stage consumes the previous stage's output, so the
+later stages cannot be produced in isolation); ``phase`` selects which stage's
+result is *reported*, in human-readable form or as ``--json``.
+
+Exit code is 0 on success and 2 on an argparse error. A provider failure
+propagates as an uncaught exception rather than an exit-1 summary: this is a
+thin orchestrator, and swallowing a domain traceback would hide the defect.
 """
 
 from __future__ import annotations

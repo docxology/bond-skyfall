@@ -180,9 +180,11 @@ def min_cut_edges(
     """Return the minimum cut separating ``source`` from ``sink``.
 
     Computes the max flow, then BFS-reaches every node still reachable in the
-    residual graph; the cut is the set of edges leaving that reachable set.
-    By the max-flow min-cut theorem its total capacity equals the max-flow
-    value.
+    residual graph — **including the reverse arcs induced by pushed flow** —
+    and takes the cut to be the original edges leaving that reachable set. By
+    the max-flow min-cut theorem its total capacity equals the max-flow value,
+    which :func:`min_cut_edges` guarantees for every network, not merely for
+    the acyclic canonical one.
 
     Returns:
         A :class:`CutResult` whose ``edges`` are ordered (source node, then
@@ -200,16 +202,27 @@ def min_cut_edges(
         residual[(src, dst)] = residual.get((src, dst), 0.0) - amount
         residual[(dst, src)] = residual.get((dst, src), 0.0) + amount
 
+    # Reachability must follow the *residual* graph, which includes the reverse
+    # arcs created by pushed flow. Walking only the original forward edges
+    # under-approximates the source side of the cut: any edge carrying flow
+    # *into* that under-approximated set is then counted as a cut edge, and the
+    # reported cut value exceeds the max flow, breaking the theorem this
+    # function documents. See tests/test_exfiltration.py::TestMinCut for the
+    # enumerated positive control that pins this.
+    residual_adjacency: dict[str, list[str]] = {}
+    for (src, dst), capacity in residual.items():
+        if capacity > 0:
+            residual_adjacency.setdefault(src, []).append(dst)
+
     reachable: set[str] = {source}
     queue: deque[str] = deque([source])
     while queue:
         current = queue.popleft()
-        for nxt in sorted(network.out_neighbours(current)):
+        for nxt in sorted(residual_adjacency.get(current, ())):
             if nxt in reachable:
                 continue
-            if residual.get((current, nxt), 0.0) > 0:
-                reachable.add(nxt)
-                queue.append(nxt)
+            reachable.add(nxt)
+            queue.append(nxt)
 
     cut_edges = [
         (u, v)

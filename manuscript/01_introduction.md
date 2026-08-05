@@ -32,6 +32,15 @@ computational problems, each with a real deterministic algorithm and real data:
 The package follows the PROJECT BOND guardrails: the pure domain modules are
 infrastructure-free and importable without the BOND protocol; `mission.py` is
 a thin adapter to the frozen `bond_api` contract; scripts are thin
-orchestrators; tests are real-computation and zero-mock with ≥90% coverage.
+orchestrators; tests are real-computation and zero-mock, held above a hard
+coverage floor rather than to a quoted percentage.
+
 Every number reported in this manuscript is injected from
-`skyfall.manuscript_variables.generate_variables()` — never hand-authored.
+`skyfall.manuscript_variables.generate_variables()` — never hand-authored —
+and that rule is enforced in both directions by the suite: no token may go
+unresolved, and no bare numeral may appear in the results narrative. Section 6
+describes the gates.
+
+Where a scenario could pass while the underlying algorithm was wrong, the
+package prefers a test that enumerates a family over a test that checks the
+canonical case; Section 4 records the two defects that discipline caught.
