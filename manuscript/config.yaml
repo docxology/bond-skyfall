@@ -26,8 +26,12 @@ mission:
 keywords:
   - "cyberattack simulation"
   - "network intrusion paths"
+  - "traffic change-point detection"
+  - "CUSUM control chart"
+  - "max-flow min-cut severance"
   - "legacy vulnerability audit"
   - "aging infrastructure exposure"
+  - "patch scheduling"
   - "island hideout topology"
   - "choke-point defense planning"
   - "articulation points"
@@ -45,3 +49,11 @@ scenario:
   remediation_budget: 3
   base_survival: 0.8
   containment_hops: 6
+  exfil_source: "registry"
+  exfil_sink: "internet"
+  traffic_baseline_window: 168
+  traffic_period: 24
+  cusum_k: 0.5
+  cusum_h: 5.0
+  patch_horizon_days: 30
+  patch_daily_budget: 1.0

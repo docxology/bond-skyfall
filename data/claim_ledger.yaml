@@ -46,3 +46,31 @@ claims:
     source: "src/skyfall/estate_defense.py :: island_topology(default_island())"
     source_tier: code
     freshness: regenerate
+  silva_burst_alarm:
+    claim_id: silva_burst_alarm
+    kind: computed
+    value: 180
+    source: "src/skyfall/traffic_analysis.py :: analyze_traffic() CUSUM alarm index"
+    source_tier: code
+    freshness: regenerate
+  silva_max_flow:
+    claim_id: silva_max_flow
+    kind: computed
+    value: 8.0
+    source: "src/skyfall/exfiltration.py :: edmonds_karp(registry, internet)"
+    source_tier: code
+    freshness: regenerate
+  silva_num_vulnerabilities:
+    claim_id: silva_num_vulnerabilities
+    kind: scenario_data
+    value: 12
+    source: "src/skyfall/patch_strategy.py :: DEFAULT_VULNERABILITIES"
+    source_tier: code
+    freshness: regenerate
+  silva_patch_reduction:
+    claim_id: silva_patch_reduction
+    kind: computed
+    value: 0.889
+    source: "src/skyfall/patch_strategy.py :: analyze_patch_schedule() reduction_ratio"
+    source_tier: code
+    freshness: regenerate

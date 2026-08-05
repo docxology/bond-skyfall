@@ -11,8 +11,10 @@ from pathlib import Path
 from skyfall.estate_defense import DEFAULT_ESTATE, DefensePlan
 from skyfall.figures import (
     DEFAULT_FIGURE_OUTPUT,
+    DEFAULT_TRAFFIC_FIGURE_OUTPUT,
     defense_coverage_fraction,
     render_estate_defense_figure,
+    render_traffic_figure,
 )
 
 
@@ -39,6 +41,25 @@ class TestFigure:
     def test_default_output_path(self) -> None:
         assert DEFAULT_FIGURE_OUTPUT.name == "estate_defense.png"
         assert "output" in str(DEFAULT_FIGURE_OUTPUT)
+
+
+class TestTrafficFigure:
+    def test_render_creates_png(self, tmp_path: Path) -> None:
+        out = tmp_path / "traffic_detection.png"
+        path = render_traffic_figure(output_path=out)
+        assert out.is_file()
+        assert path == out
+        assert out.stat().st_size > 0
+
+    def test_render_deterministic(self, tmp_path: Path) -> None:
+        a = tmp_path / "ta.png"
+        b = tmp_path / "tb.png"
+        render_traffic_figure(output_path=a)
+        render_traffic_figure(output_path=b)
+        assert a.read_bytes() == b.read_bytes()
+
+    def test_default_output_path(self) -> None:
+        assert DEFAULT_TRAFFIC_FIGURE_OUTPUT.name == "traffic_detection.png"
 
 
 class TestCoverageFraction:

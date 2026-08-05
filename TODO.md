@@ -1,22 +1,32 @@
 # TODO — skyfall (SILVA)
 
-## Built (phase 2)
+## Built (phase 2 + phase 4)
 
 - **Cyber ops** (`src/skyfall/cyber_ops.py`): MI6 HQ directed-graph model,
   simple-path enumeration, BFS shortest path, Dijkstra cheapest path,
   per-hop survival simulation. Real data (fixed `DEFAULT_NETWORK`).
+- **Traffic change-point detection** (`src/skyfall/traffic_analysis.py`, phase 4):
+  periodic-baseline residualization + two-sided CUSUM control chart, EWMA,
+  two-segment change-point likelihood. Real data (`DEFAULT_TRAFFIC`).
+- **Exfiltration severance** (`src/skyfall/exfiltration.py`, phase 4):
+  Edmonds–Karp max-flow and min-cut severance plan (max-flow min-cut theorem
+  verified). Real data (`DEFAULT_FLOW_NETWORK`).
 - **Legacy audit** (`src/skyfall/legacy_audit.py`): closed-form exposure score
   (age/patch/protocol/surface), fleet aggregation + risk tiers, greedy
   budgeted remediation. Real data (fixed `default_legacy_fleet()`).
+- **Patch scheduling** (`src/skyfall/patch_strategy.py`, phase 4): greedy
+  severity-first scheduler over a 30-day horizon under a daily budget,
+  cumulative-exposure reduction vs no-patching baseline. Real data
+  (`DEFAULT_VULNERABILITIES`).
 - **Estate defense** (`src/skyfall/estate_defense.py`): island flood-fill
   topology (reachable/perimeter/hideout), Tarjan articulation (choke) points,
   defender assignment + coverage. Real data (fixed `DEFAULT_ESTATE`,
   `default_island()`).
 - **Protocol adapter** (`src/skyfall/mission.py`): frozen `bond_api`
-  `MissionProvider` (film `skyfall`, codename `SILVA`), five-stage lifecycle,
-  `register_gadgets()`.
+  `MissionProvider` (film `skyfall`, codename `SILVA`), six-stage lifecycle,
+  `register_gadgets()` (six gadgets).
 - **Manuscript + figures**: `manuscript_variables.py` `{{TOKEN}}` hydration;
-  deterministic estate-defense figure (`figures/`).
+  two deterministic figures (estate defense + traffic detection).
 - Thin scripts: `run_mission.py`, `00_preflight.py`,
   `z_generate_manuscript_variables.py`.
 
@@ -35,8 +45,10 @@
 
 ## Not implemented (deliberately out of scope)
 
-- Live/stochastic intrusion simulation (would break determinism).
+- Live/stochastic intrusion or exfiltration simulation (would break determinism).
 - Physical estate simulation (would break determinism and add deps).
+- Adaptive (non-periodic) change-point detection beyond the two-segment
+  likelihood (deterministic scope).
 
 ## Verification
 

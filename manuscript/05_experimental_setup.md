@@ -27,7 +27,8 @@ uv run python scripts/z_generate_manuscript_variables.py  # hydrate tokens + fig
 uv run pytest tests/ --cov=src --cov-fail-under=90    # zero-mock gate
 ```
 
-The pure domain modules (`skyfall.cyber_ops`, `skyfall.legacy_audit`,
+The pure domain modules (`skyfall.cyber_ops`, `skyfall.traffic_analysis`,
+`skyfall.exfiltration`, `skyfall.legacy_audit`, `skyfall.patch_strategy`,
 `skyfall.estate_defense`) import nothing from `bond_api` and remain usable in
 isolation if the path dependency is ever unavailable; `skyfall.mission` is the
 thin adapter to the frozen protocol.

@@ -34,9 +34,10 @@ literal `{{VARIABLE}}` placeholders without tripping it.
 | Label | PNG | Generator |
 | --- | --- | --- |
 | `{#fig:estate_defense}` | `output/figures/estate_defense.png` | `skyfall.figures.render_estate_defense_figure` |
+| `{#fig:traffic_detection}` | `output/figures/traffic_detection.png` | `skyfall.figures.render_traffic_figure` |
 
-Referenced via `@fig:estate_defense` / `[@fig:estate_defense]` and defined
-with a Pandoc image line `{#fig:estate_defense}`.
+Referenced via `@fig:estate_defense` / `@fig:traffic_detection` and defined
+with a Pandoc image line including the `{#fig:...}` attribute.
 
 ## Editing workflow
 

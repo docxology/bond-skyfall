@@ -22,7 +22,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from skyfall.figures import render_estate_defense_figure  # noqa: E402
+from skyfall.figures import render_estate_defense_figure, render_traffic_figure  # noqa: E402
 from skyfall.manuscript_variables import generate_variables, resolve_manuscript_tree  # noqa: E402
 
 
@@ -48,8 +48,10 @@ def main() -> int:
         strict=not args.allow_draft,
     )
     figure_path = render_estate_defense_figure(output_path=output_root / "figures" / "estate_defense.png")
+    traffic_path = render_traffic_figure(output_path=output_root / "figures" / "traffic_detection.png")
     print(f"Resolved {len(variables)} manuscript variables -> {variables_path}")
     print(f"Rendered estate-defense figure -> {figure_path}")
+    print(f"Rendered traffic-detection figure -> {traffic_path}")
     return 0
 
 

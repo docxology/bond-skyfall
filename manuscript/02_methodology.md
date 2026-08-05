@@ -21,6 +21,34 @@ traverses a path uncontained is the product over hops of
 `base_survival × (1 − exposure(dest))`. A step simulation walks the chosen
 path hop-by-hop and reports whether it exceeds a containment budget.
 
+## Traffic change-point detection (`skyfall.traffic_analysis`)
+
+HQ traffic follows a daily rhythm, so a naive CUSUM on the raw series
+false-alarms on the rhythm itself. The detector first estimates a
+per-hour-of-day baseline :math:`\bar{x}_h` over a clean pre-incident window
+({{SILVA_EXFIL_WINDOW}} baseline hours), subtracts it to leave a zero-mean
+residual series, then runs the two-sided CUSUM control chart of Page (1954):
+
+:math:`S_t^+ = \max(0, S_{t-1}^+ + z_t - k), \quad S_t^- = \max(0, S_{t-1}^- - z_t - k)`
+
+with :math:`z_t` the standardized residual and :math:`k` an allowance. An
+alarm fires the first time either side exceeds the decision interval
+:math:`h`. The burst ({{SILVA_EXFIL_WINDOW}}) is detected at hour
+{{SILVA_ALARM_INDEX}}. :func:`change_point_likelihood` additionally locates the
+most likely single change point by maximizing the two-segment normal
+likelihood split (hour {{SILVA_BEST_CHANGE_POINT}}).
+
+## Exfiltration severance (`skyfall.exfiltration`)
+
+The outward transfer of the agent list is a capacitated flow problem on the
+HQ network. :func:`edmonds_karp` computes the maximum exfiltration rate from
+the registry (source) to the internet (sink) via BFS augmenting paths,
+pushing each path's exact bottleneck. :func:`min_cut_edges` then finds the
+minimum cut separating source from sink — the smallest link set that must be
+severed. By the max-flow min-cut theorem the cut value equals the max flow
+(both {{SILVA_MAX_FLOW}}). The severance plan is
+{{SILVA_SEVERANCE}}.
+
 ## Legacy exposure model (`skyfall.legacy_audit`)
 
 Each legacy system contributes four normalized risk factors — age
@@ -32,6 +60,17 @@ returns an overall fleet-risk label. Remediation is a deterministic greedy
 descent: each pass patches the system whose dominant risk factor offers the
 largest exposure reduction, under a fixed budget of `3` actions
 (targets: {{SILVA_REMEDIATION_TARGETS}}).
+
+## Patch scheduling (`skyfall.patch_strategy`)
+
+The maintenance layer schedules the {{SILVA_NUM_VULNERABILITIES}} known
+vulnerabilities under a daily budget of {{SILVA_DAILY_BUDGET}} patch over a
+{{SILVA_HORIZON_DAYS}}-day horizon. A deterministic greedy scheduler spends
+each day's budget on the already-discovered, highest-severity unpatched
+vulnerabilities (ties broken by id), and cumulative exposure is the
+severity-days accrued until each patch lands. Against a no-patching baseline
+of {{SILVA_PATCH_BASELINE}} severity-days, the schedule reduces exposure to
+{{SILVA_PATCH_SCHEDULED}} — a {{SILVA_PATCH_REDUCTION}} reduction.
 
 ## Estate defense model (`skyfall.estate_defense`)
 

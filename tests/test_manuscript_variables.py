@@ -59,6 +59,14 @@ class TestGenerateVariables:
         assert vars_["SILVA_FLEET_SIZE"] == "5"
         assert vars_["SILVA_COVERAGE"] == "1.00"
         assert vars_["SILVA_SHORTEST_HOPS"] == "5"
+        # Phase-4 deepened tokens.
+        assert vars_["SILVA_BURST_DETECTED"] == "yes"
+        assert vars_["SILVA_ALARM_INDEX"] == "180"
+        assert vars_["SILVA_MAX_FLOW"] == "8.0"
+        assert vars_["SILVA_MIN_CUT_VALUE"] == "8.0"
+        assert vars_["SILVA_NUM_VULNERABILITIES"] == "12"
+        assert vars_["SILVA_PATCHED_COUNT"] == "12"
+        assert vars_["SILVA_SEVERANCE"].startswith("sever ")
 
     def test_explicit_config_path(self, tmp_path: Path) -> None:
         from skyfall.manuscript_variables import generate_variables

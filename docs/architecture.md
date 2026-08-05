@@ -4,7 +4,7 @@
 
 | Layer | Module(s) | Responsibility | Imports bond_api? |
 | --- | --- | --- | --- |
-| Pure domain core | `skyfall/cyber_ops.py`, `skyfall/legacy_audit.py`, `skyfall/estate_defense.py` | Graph/scoring algorithms, real deterministic computation | No |
+| Pure domain core | `skyfall/cyber_ops.py`, `skyfall/traffic_analysis.py`, `skyfall/exfiltration.py`, `skyfall/legacy_audit.py`, `skyfall/patch_strategy.py`, `skyfall/estate_defense.py` | Graph/statistics/scheduling algorithms, real deterministic computation | No |
 | Protocol adapter | `skyfall/mission.py` | Implements `bond_api` `MissionProvider`, registers gadgets | Yes |
 | Manuscript | `skyfall/manuscript_variables.py`, `skyfall/figures/` | Token hydration + figure rendering | via mission |
 | Orchestrators | `scripts/run_mission.py`, `scripts/00_preflight.py`, `scripts/z_generate_manuscript_variables.py` | Thin CLIs | Yes |
@@ -14,14 +14,22 @@
 
 `scripts/` → `src/` → (pure core, no protocol). Nothing imports upward. The
 pure domain core is fully standalone: it can be lifted into any Python
-environment and imported without `bond_api`.
+environment and imported without `bond_api` (the facade does not eagerly load
+the mission adapter, so importing any pure module leaves `bond_api` out of
+`sys.modules`).
 
 ## Concept → module mapping
 
 - **Network intrusion paths** (`cyber_ops.py`): DFS path enumeration, BFS
   shortest path, Dijkstra cheapest path, per-hop survival simulation.
+- **Traffic change-point detection** (`traffic_analysis.py`): periodic
+  baseline residualization, two-sided CUSUM, EWMA, change-point likelihood.
+- **Exfiltration severance** (`exfiltration.py`): Edmonds–Karp max-flow,
+  min-cut severance plan (max-flow min-cut theorem).
 - **Legacy vulnerability audit** (`legacy_audit.py`): closed-form exposure
   score (age/patch/protocol/surface), fleet aggregation, greedy remediation.
+- **Patch scheduling** (`patch_strategy.py`): greedy severity-first scheduler,
+  cumulative-exposure reduction.
 - **Island topology + estate defense** (`estate_defense.py`): flood-fill
   island reachability/perimeter/hideout, Tarjan articulation (choke) points,
   defender assignment.

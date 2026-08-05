@@ -10,13 +10,32 @@ across a {{SILVA_NUM_NETWORK_NODES}}-node network, reaching it by
 aging node) is the pivot an adversary prefers when it is reachable, but the
 expensive route through it is never the cheapest aggregate path.
 
-## Fleet exposure
+## Traffic detection and severance
+
+The HQ traffic detector residualizes the daily rhythm and runs a CUSUM chart;
+the agent-list exfiltration burst (window {{SILVA_EXFIL_WINDOW}}) is
+**{{SILVA_BURST_DETECTED}}** — the alarm fires at hour {{SILVA_ALARM_INDEX}},
+and the most likely change point is hour {{SILVA_BEST_CHANGE_POINT}}.
+
+Containment is a min-cut problem: the maximum exfiltration rate from the
+registry to the internet is {{SILVA_MAX_FLOW}}, and the minimum severance cut
+of equal value ({{SILVA_MIN_CUT_VALUE}}) is `{{SILVA_SEVERANCE}}`. Severing
+exactly those links stops the exfiltration.
+
+![MI6 HQ traffic detection — residual series with CUSUM alarm](../output/figures/traffic_detection.png){#fig:traffic_detection}
+
+## Fleet exposure and patch schedule
 
 The audited legacy fleet of {{SILVA_FLEET_SIZE}} systems has mean exposure
 {{SILVA_MEAN_EXPOSURE}} and maximum exposure {{SILVA_MAX_EXPOSURE}}, with
 {{SILVA_CRITICAL_COUNT}} critical systems, yielding an overall fleet risk of
-**{{SILVA_FLEET_RISK}}**. A bounded remediation budget of three actions targets
-{{SILVA_REMEDIATION_TARGETS}} in order of greatest risk reduction.
+**{{SILVA_FLEET_RISK}}**.
+
+Scheduling the {{SILVA_NUM_VULNERABILITIES}} known vulnerabilities under a
+daily budget of {{SILVA_DAILY_BUDGET}} patch over {{SILVA_HORIZON_DAYS}} days
+patches all {{SILVA_PATCHED_COUNT}}, cutting cumulative exposure from a
+no-patching baseline of {{SILVA_PATCH_BASELINE}} severity-days to
+{{SILVA_PATCH_SCHEDULED}} — a {{SILVA_PATCH_REDUCTION}} reduction.
 
 ## Estate defense
 
@@ -32,5 +51,5 @@ covered position.
 
 ![Skyfall estate choke-point defense plan](../output/figures/estate_defense.png){#fig:estate_defense}
 
-Figure rendered deterministically to ``output/figures/estate_defense.png`` by
-`skyfall.figures.render_estate_defense_figure`.
+Both figures are rendered deterministically to `output/figures/` by
+`skyfall.figures`.

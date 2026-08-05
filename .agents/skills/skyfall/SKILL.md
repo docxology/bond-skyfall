@@ -35,18 +35,26 @@ uv run mypy src/ scripts/
 
 - `src/skyfall/cyber_ops.py` — network intrusion paths: DFS enumeration, BFS
   shortest, Dijkstra cheapest, per-hop survival simulation.
+- `src/skyfall/traffic_analysis.py` — periodic-baseline CUSUM change-point
+  detection of the exfiltration burst (+ EWMA, change-point likelihood).
+- `src/skyfall/exfiltration.py` — Edmonds–Karp max-flow and min-cut severance.
 - `src/skyfall/legacy_audit.py` — closed-form exposure score, fleet audit,
   greedy remediation.
+- `src/skyfall/patch_strategy.py` — greedy severity-first patch scheduling,
+  cumulative-exposure reduction.
 - `src/skyfall/estate_defense.py` — island flood-fill topology, Tarjan
   articulation (choke) points, defender assignment.
 - `src/skyfall/mission.py` — the BOND-API `MissionProvider` adapter (film
-  `skyfall`, codename `SILVA`) + `register_gadgets`.
+  `skyfall`, codename `SILVA`) + `register_gadgets` (six gadgets). The facade
+  does NOT eagerly import mission, so pure modules load without bond_api.
 
 ## Pitfalls
 
-- Domain modules (`cyber_ops`, `legacy_audit`, `estate_defense`) must **not**
-  import `bond_api`; only `mission.py` (and manuscript/figures) bind to the
-  protocol.
+- The six domain modules (`cyber_ops`, `traffic_analysis`, `exfiltration`,
+  `legacy_audit`, `patch_strategy`, `estate_defense`) must **not** import
+  `bond_api`; only `mission.py` (and manuscript/figures) bind to the protocol,
+  and the `skyfall` facade stays eager-free so pure imports leave zero
+  `bond_api` loaded.
 - Run `uv sync --extra dev` after editing `pyproject.toml` before pytest.
 - After `ruff check`, run `ruff format` (format --check flags otherwise).
 - Manuscript metrics are `{{VARIABLE}}`-injected, never hand-authored.

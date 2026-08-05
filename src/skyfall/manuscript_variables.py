@@ -37,10 +37,23 @@ from .estate_defense import (
     estate_defense_plan,
     island_topology,
 )
+from .exfiltration import (
+    analyze_exfiltration,
+)
 from .legacy_audit import (
     audit_fleet,
     default_legacy_fleet,
     prioritize_remediation,
+)
+from .patch_strategy import (
+    DEFAULT_DAILY_BUDGET,
+    DEFAULT_HORIZON_DAYS,
+    DEFAULT_VULNERABILITIES,
+    analyze_patch_schedule,
+)
+from .traffic_analysis import (
+    EXFIL_WINDOW,
+    analyze_traffic,
 )
 from .mission import DEFENDERS, PACKAGE_VERSION, SILVA_SEED
 
@@ -101,6 +114,10 @@ def generate_variables(
     defense = estate_defense_plan(DEFAULT_ESTATE, DEFENDERS)
     island = island_topology(default_island())
 
+    traffic = analyze_traffic()
+    exfil = analyze_exfiltration()
+    patches = analyze_patch_schedule()
+
     num_intrusion_paths = len(intrusion_paths(DEFAULT_NETWORK, DEFAULT_ENTRY, DEFAULT_TARGET))
     shortest_hops = len(shortest.hosts) - 1 if shortest is not None else 0
     cheapest_hops = len(cheapest.hosts) - 1 if cheapest is not None else 0
@@ -119,12 +136,26 @@ def generate_variables(
         "SILVA_NUM_INTRUSION_PATHS": str(num_intrusion_paths),
         "SILVA_SHORTEST_HOPS": str(shortest_hops),
         "SILVA_CHEAPEST_HOPS": str(cheapest_hops),
+        "SILVA_BURST_DETECTED": "yes" if traffic.burst_detected else "no",
+        "SILVA_ALARM_INDEX": str(traffic.cusum_alarm_index) if traffic.cusum_alarm_index is not None else "none",
+        "SILVA_BEST_CHANGE_POINT": str(traffic.best_change_point),
+        "SILVA_EXFIL_WINDOW": f"{EXFIL_WINDOW[0]}–{EXFIL_WINDOW[1]}",
+        "SILVA_MAX_FLOW": f"{exfil['max_flow']:.1f}",
+        "SILVA_MIN_CUT_VALUE": f"{exfil['min_cut_value']:.1f}",
+        "SILVA_SEVERANCE": ", ".join(exfil["severance"]) if exfil["severance"] else "none",
         "SILVA_FLEET_SIZE": str(fleet.fleet_size),
         "SILVA_MEAN_EXPOSURE": f"{fleet.mean_exposure:.2f}",
         "SILVA_MAX_EXPOSURE": f"{fleet.max_exposure:.2f}",
         "SILVA_CRITICAL_COUNT": str(fleet.critical_count),
         "SILVA_FLEET_RISK": fleet.risk(),
         "SILVA_REMEDIATION_TARGETS": ", ".join(a.system_id for a in remediation),
+        "SILVA_NUM_VULNERABILITIES": str(len(DEFAULT_VULNERABILITIES)),
+        "SILVA_HORIZON_DAYS": str(DEFAULT_HORIZON_DAYS),
+        "SILVA_DAILY_BUDGET": f"{DEFAULT_DAILY_BUDGET:.0f}",
+        "SILVA_PATCHED_COUNT": str(patches["patched_count"]),
+        "SILVA_PATCH_BASELINE": f"{patches['baseline_exposure']:.1f}",
+        "SILVA_PATCH_SCHEDULED": f"{patches['scheduled_exposure']:.1f}",
+        "SILVA_PATCH_REDUCTION": f"{patches['reduction_ratio']:.0%}",
         "SILVA_NUM_CHOKE_POINTS": str(len(points)),
         "SILVA_CHOKE_POINTS": ", ".join(points) if points else "none",
         "SILVA_NUM_DEFENDERS": str(len(DEFENDERS)),

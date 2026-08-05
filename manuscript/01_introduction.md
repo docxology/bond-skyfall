@@ -4,19 +4,26 @@
 
 Skyfall (2012) dramatizes a coordinated external assault on MI6: a single
 adversary — Silva — reaches the Service's deepest and most sensitive systems
-through a chain of aging, poorly-segmented connections, and ultimately forces
-the confrontation onto home ground at the Skyfall estate. This package turns
-that story into three well-posed computational problems, each with a real
-deterministic algorithm and real data:
+through a chain of aging, poorly-segmented connections, exfiltrates the NATO
+agent list, and ultimately forces the confrontation onto home ground at the
+Skyfall estate. This package turns that story into six well-posed
+computational problems, each with a real deterministic algorithm and real data:
 
 1. **Network intrusion paths** (`skyfall.cyber_ops`) — model the MI6 HQ
    network as a directed graph and ask: by which routes can an adversary reach
    the high-value target, and which is shortest / cheapest?
-2. **Legacy-system exposure audit** (`skyfall.legacy_audit`) — quantify how
-   the aging infrastructure's age, missing patches, obsolete protocols, and
-   open services combine into a scalar exposure, and how to spend a finite
-   remediation budget.
-3. **Island topology + estate defense** (`skyfall.estate_defense`) — compute
+2. **Traffic change-point detection** (`skyfall.traffic_analysis`) — estimate
+   a periodic (hour-of-day) baseline, residualize it, and run a CUSUM control
+   chart to catch the exfiltration burst.
+3. **Exfiltration severance** (`skyfall.exfiltration`) — treat the outward
+   data transfer as a capacitated flow and compute the max-flow and the
+   minimum cut (the smallest link set that must be severed).
+4. **Legacy-system exposure audit** (`skyfall.legacy_audit`) — quantify how
+   aging infrastructure's age, missing patches, obsolete protocols, and open
+   services combine into a scalar exposure.
+5. **Patch scheduling** (`skyfall.patch_strategy`) — schedule a finite daily
+   patching budget to minimize cumulative fleet exposure over a horizon.
+6. **Island topology + estate defense** (`skyfall.estate_defense`) — compute
    the reachable topology of Silva's island hideout and the articulation
    (choke) points of the Skyfall estate, then assign a limited defending team.
 
