@@ -110,8 +110,15 @@ The rules that follow from those three:
   fleet, vulnerability backlog, estate graph, island grid. Nothing varies.
 - No RNG draws anywhere. `SILVA_SEED = 11` is recorded in provenance only, and
   the provenance asserts it.
-- No wall-clock in any persisted metric. `GENERATION_TIMESTAMP` is a build
-  label and enters no result; `Provenance.wall_time_s` is fixed at `0.0`.
+- No wall clock in any persisted artifact. The build stamp `SILVA_BUILD_DATE`
+  is the committed `paper.date` config field, not `datetime.now()`;
+  `Provenance.wall_time_s` is fixed at `0.0`.
+- Two full runs of `scripts/z_generate_manuscript_variables.py`, with real time
+  passing between them, are asserted to write byte-identical artifact trees,
+  and the generated `.md`/`.json` are scanned for wall-clock instants. This is
+  the claim run as stated — injecting a fixed `now` would have hidden the wall
+  clock rather than caught it, which is exactly how the earlier
+  `GENERATION_TIMESTAMP` breach survived.
 - Both figure PNGs are asserted byte-identical across repeated renders.
 - `analyze_*` functions are asserted to return equal results on repeated calls.
 - Iteration order is explicitly sorted wherever a set or dict is traversed, so
@@ -140,7 +147,7 @@ that computed it, or the suite is red.
 | `test_patch_strategy.py` | Vulnerability validation, baseline exposure, greedy schedule, exposure with schedule, reduction metrics |
 | `test_estate_defense.py` | Island grid and topology, Tarjan choke points, road-symmetry enforcement, defense planning, coverage, the no-choke-point plan |
 | `test_mission.py` | Provider identity, structural protocol conformance, five-stage lifecycle, provenance, per-field `input_hash` sensitivity (sixteen mutations plus a positive control), gadget registry, every conditional debrief lesson, the unreachable-target failure path, pure-core isolation |
-| `test_manuscript_variables.py` | Config loading and validation, token generation, strict resolution, the reachability seam, and both manuscript-integrity gates |
+| `test_manuscript_variables.py` | Config loading and validation, the committed build-stamp gate, token generation, strict resolution, the reachability seam, byte-identical regeneration across two real script runs, and both manuscript-integrity gates |
 | `test_figures.py` | Deterministic PNG rendering of both figures, the no-alarm render path (a burst-free series, which the canonical series cannot reach), coverage-fraction typing |
 | `test_scripts_smoke.py` | All three CLIs via real subprocesses, including argparse exit codes |
 

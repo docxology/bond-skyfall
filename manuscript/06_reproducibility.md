@@ -8,15 +8,25 @@ Every metric in this manuscript is deterministic by construction:
   grid are hardcoded constants; nothing varies between runs.
 - **No randomness**: the mission draws no random numbers; `{{SILVA_SEED}}` is
   recorded solely in provenance.
-- **No wall-clock in metrics**: the only time-dependent token is
-  `GENERATION_TIMESTAMP` ({{GENERATION_TIMESTAMP}}), which labels the build and
-  does not enter any result.
+- **No wall clock anywhere in the artifacts**: no generated value is read from
+  the clock. The build stamp `SILVA_BUILD_DATE` ({{SILVA_BUILD_DATE}}) is the
+  committed `paper.date` field of `manuscript/config.yaml`, so it changes only
+  when someone edits and commits that file.
+
+Because of the last point the guarantee is byte-level, not merely
+value-level: running `scripts/z_generate_manuscript_variables.py` twice writes
+byte-identical `output/manuscript/*.md`, `output/data/manuscript_variables.json`,
+and `output/figures/*.png`. The one environment input is the interpreter —
+`PYTHON_VERSION` is injected into the setup section, so the byte-identity claim
+is scoped to repeated runs on a fixed Python version, and a different
+interpreter changes exactly that one field.
 
 ## Verification gates
 
 | Gate | Command | What it asserts |
 | --- | --- | --- |
 | Coverage floor | `uv run pytest tests/ --cov=src --cov-fail-under=90` | line + branch coverage on `src/` stays at or above the floor; zero failures, zero skips |
+| Byte-identical regeneration | `tests/test_manuscript_variables.py::TestRegenerationIsByteIdentical` | two full runs of the generator script, with real time passing between them, write byte-identical artifact trees, and no artifact contains a wall-clock instant |
 | No mocks | `rg -n 'MagicMock\|mocker\.patch\|unittest\.mock\|create_autospec' tests/` | no mock framework anywhere in the suite |
 | Protocol purity | `tests/test_mission.py::TestPureCoreIsolation` | a fresh subprocess importing every domain module leaves `bond_api` out of `sys.modules` |
 | Lint / types | `uv run ruff check src/ scripts/` · `uv run mypy src/` | style and type cleanliness on shipped code |

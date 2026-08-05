@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import platform
 import re
-from datetime import datetime, timezone
+from datetime import date as _date
 from pathlib import Path
 from typing import Any
 
@@ -71,6 +71,7 @@ from .mission import DEFENDERS, PACKAGE_VERSION, REMEDIATION_BUDGET, SILVA_SEED
 __all__ = [
     "generate_variables",
     "load_manuscript_config",
+    "manuscript_build_date",
     "resolve_manuscript_tree",
     "require_reachable",
 ]
@@ -91,6 +92,28 @@ def load_manuscript_config(config_path: str | Path | None = None) -> dict[str, A
     if not isinstance(data, dict):
         raise ValueError(f"manuscript config must be a top-level mapping, got {type(data).__name__}")
     return data
+
+
+def manuscript_build_date(paper: dict[str, Any]) -> str:
+    """Return the build stamp for the manuscript, read from committed config.
+
+    The stamp is ``paper.date`` in ``manuscript/config.yaml`` — a committed
+    constant that only changes when someone edits and commits the file. It is
+    deliberately *not* ``datetime.now()``: a wall clock rendered into
+    ``output/manuscript/*.md`` and ``output/data/manuscript_variables.json``
+    would make every regeneration produce different bytes, falsifying the
+    byte-identical guarantee stated in ``manuscript/06_reproducibility.md``
+    and bound by
+    ``tests/test_manuscript_variables.py::TestRegenerationIsByteIdentical``.
+
+    Raises:
+        ValueError: if ``paper.date`` is missing, is not a string, or is not
+            an ISO-8601 calendar date (``YYYY-MM-DD``).
+    """
+    raw = paper.get("date")
+    if not isinstance(raw, str) or not raw:
+        raise ValueError("manuscript config 'paper.date' must be an ISO-8601 date string (YYYY-MM-DD)")
+    return _date.fromisoformat(raw).isoformat()
 
 
 def require_reachable(path: object) -> None:
@@ -116,9 +139,12 @@ def generate_variables(
 ) -> dict[str, str]:
     """Compute the ``{{TOKEN}}`` → value mapping for the manuscript.
 
-    All values are derived from the frozen domain modules (deterministic); no
-    RNG or wall-clock enters a stable metric. ``GENERATION_TIMESTAMP`` is the
-    sole non-deterministic token, matching the exemplar convention.
+    All values are derived from the frozen domain modules and from committed
+    config; no RNG and no wall clock enters the map, so two runs on one
+    interpreter return equal dictionaries and the artifacts written from them
+    are byte-identical. ``SILVA_BUILD_DATE`` is a committed config constant
+    (see :func:`manuscript_build_date`), and ``PYTHON_VERSION`` is fixed by
+    the interpreter the run uses.
 
     Args:
         config_path: Override for ``manuscript/config.yaml``.
@@ -221,7 +247,7 @@ def generate_variables(
         "SILVA_ISLAND_REACHABLE": str(len(island.reachable)),
         "SILVA_ISLAND_PERIMETER": str(island.perimeter),
         "PYTHON_VERSION": platform.python_version(),
-        "GENERATION_TIMESTAMP": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "SILVA_BUILD_DATE": manuscript_build_date(paper),
     }
 
 

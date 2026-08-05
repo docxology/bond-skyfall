@@ -6,7 +6,8 @@
 - **Codename**: {{SILVA_CODENAME}}
 - **Package version**: {{SILVA_VERSION}} · mission version {{SILVA_MISSION_VERSION}}
 - **Deterministic seed**: {{SILVA_SEED}}
-- **Python**: {{PYTHON_VERSION}} · generated {{GENERATION_TIMESTAMP}}
+- **Python**: {{PYTHON_VERSION}} · build date {{SILVA_BUILD_DATE}} (declared in
+  `manuscript/config.yaml`, not read from the clock)
 
 ## Scenario configuration
 

@@ -89,8 +89,15 @@ package failure; re-run with the sandbox disabled.
   are hardcoded and never vary.
 - No random draws; `SILVA_SEED = 11` is recorded only in provenance, and the
   provenance test asserts it.
-- No wall-clock in any persisted metric (the sole exception is
-  `GENERATION_TIMESTAMP`, a build label that enters no result).
+- No wall clock in any persisted artifact. The build stamp `SILVA_BUILD_DATE`
+  is read from the committed `paper.date` field of `manuscript/config.yaml`;
+  nothing calls `datetime.now()`.
+- Two full runs of `scripts/z_generate_manuscript_variables.py`, with real time
+  passing between them, write byte-identical trees under `output/` — asserted
+  by `TestRegenerationIsByteIdentical`, which runs the real script twice rather
+  than injecting a fixed clock. The scope is a fixed interpreter:
+  `PYTHON_VERSION` is injected into the setup section, so a different Python
+  changes that one field.
 - Both figures render byte-identically across runs, asserted by comparing bytes
   from two renders.
 - Every manuscript metric is injected from `manuscript_variables.py`; the suite

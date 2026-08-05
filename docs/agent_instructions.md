@@ -19,9 +19,12 @@ suggestions; violations fail the gates.
    number. No source module is omitted from the measurement; do not add an
    `omit` entry for anything but test files (a blanket `*/__init__.py` omit
    previously hid `figures/__init__.py` from every reported total).
-5. **Deterministic.** Fixed inputs, no RNG, no wall-clock in any persisted
-   metric. The sole exception is `GENERATION_TIMESTAMP`, a build label that
-   enters no result.
+5. **Deterministic.** Fixed inputs, no RNG, and no wall clock in any persisted
+   artifact — not in a metric, not in a build label. The build stamp
+   `SILVA_BUILD_DATE` comes from the committed `paper.date` field of
+   `manuscript/config.yaml`. Never render `datetime.now()` into
+   `output/`: two runs of the generator must produce byte-identical trees, and
+   `TestRegenerationIsByteIdentical` will turn red if they do not.
 6. **The pure domain core must not import `bond_api`.** `cyber_ops`,
    `traffic_analysis`, `exfiltration`, `legacy_audit`, `patch_strategy`, and
    `estate_defense` are standalone. `mission.py` is the only protocol adapter.

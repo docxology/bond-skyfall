@@ -88,9 +88,12 @@ prints the live number and fails below 90% on line *and* branch coverage.
 
 ## Reproducible outcomes
 
-Fixed inputs, no random draws. Every outcome below is asserted by the test
-suite and injected into the manuscript as a token, so prose cannot drift from
-the code:
+Fixed inputs, no random draws, and no wall clock — the build stamp comes from
+the committed `paper.date` config field, so running the generator twice writes
+byte-identical trees under `output/` (on a fixed interpreter; `PYTHON_VERSION`
+is the one environment field the artifacts carry). Every outcome below is
+asserted by the test suite and injected into the manuscript as a token, so
+prose cannot drift from the code:
 
 - Entry `internet` → target `registry`: six simple intrusion paths; the
   minimum-hop and minimum-difficulty routes coincide, and both avoid the

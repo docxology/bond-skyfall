@@ -91,8 +91,19 @@ stated honestly. Do not re-open these as defects.
   into PNG `Software` metadata, so byte-identity holds across runs on one
   installed matplotlib, not across upgrades. This is why the gate compares two
   renders rather than pinning a hash literal.
-- **`GENERATION_TIMESTAMP` is the sole wall-clock in the package.** It is a
-  build label and enters no computed result or persisted metric.
+- **There is no wall clock in the package.** The former `GENERATION_TIMESTAMP`
+  token called `datetime.now()` and was rendered into
+  `output/manuscript/05_experimental_setup.md`,
+  `output/manuscript/06_reproducibility.md`, and
+  `output/data/manuscript_variables.json`, so no two regenerations produced the
+  same bytes even though the docs claimed determinism — and the only test on it
+  injected a fixed `now`, which is why the breach survived. It is replaced by
+  `SILVA_BUILD_DATE`, read from the committed `paper.date` field of
+  `manuscript/config.yaml` by `manuscript_build_date()`, and bound by
+  `tests/test_manuscript_variables.py::TestRegenerationIsByteIdentical`, which
+  runs the real generator script twice with real time passing between the runs.
+  The byte-identity scope is a fixed interpreter, since `PYTHON_VERSION` is
+  still injected into the setup section.
 - **`../ROSTER.md` is not writable from here.** D1 records the drift; fixing it
   requires bond-root scope. Editing it from this package would violate the
   working boundary.
