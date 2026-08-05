@@ -10,7 +10,7 @@ minimum-difficulty route is {{SILVA_CHEAPEST_HOPS}} hops
 (`{{SILVA_CHEAPEST_PATH}}`). Traversing the minimum-hop route uncontained has
 probability {{SILVA_SUCCESS_PROBABILITY}} under the per-hop survival model.
 
-The legacy directory (`legacy_ldap`, the fleet's most exposed aging node) sits
+The legacy directory (`legacy_ldap`, the intrusion network's most exposed host) sits
 on some simple intrusion paths but on neither the minimum-hop nor the
 minimum-difficulty route: `legacy_ldap` appears on the cheapest path —
 **{{SILVA_LEGACY_ON_CHEAPEST}}**. The high traversal difficulty assigned to
