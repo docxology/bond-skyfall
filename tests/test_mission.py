@@ -7,6 +7,8 @@ deterministic outcome.
 
 from __future__ import annotations
 
+from dataclasses import replace
+from hashlib import sha256
 from pathlib import Path
 
 from bond_api.protocol import (
@@ -20,14 +22,23 @@ from bond_api.protocol import (
 )
 from bond_api.registry import GadgetRegistry
 
+from skyfall.cyber_ops import DEFAULT_ENTRY, DEFAULT_NETWORK, DEFAULT_TARGET, Network
+from skyfall.estate_defense import DEFAULT_ESTATE, EstateGraph, IslandGrid, default_island
+from skyfall.exfiltration import DEFAULT_FLOW_NETWORK, EXFIL_SINK, EXFIL_SOURCE, FlowNetwork
+from skyfall.legacy_audit import default_legacy_fleet
 from skyfall.mission import (
     DEFENDERS,
     MissionProvider,
     PACKAGE_VERSION,
     SILVA_SEED,
+    _default_scenario_payload,
+    _input_hash,
+    _scenario_payload,
     provider,
     register_gadgets,
 )
+from skyfall.patch_strategy import DEFAULT_VULNERABILITIES
+from skyfall.traffic_analysis import DEFAULT_TRAFFIC
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -313,3 +324,153 @@ class TestUnreachableTargetIsReportedAsFailure:
         assert assets["mi6_hq"]["nodes"] == 3
         findings = {f.label: f.detail for f in p.recon(ReconRequest(goal="x")).findings}
         assert findings["intrusion_paths"] == "0 simple paths"
+
+
+class TestInputHashSensitivity:
+    """The provenance `input_hash` must move when any frozen input moves.
+
+    The earlier implementation hashed only identifier *sets* plus four
+    scalars, so a changed node exposure, edge cost, capacity, traffic sample,
+    severity, or patch level produced different results under an identical
+    digest. Every case below mutates exactly one field of the real scenario
+    and asserts the digest changes; `test_identical_inputs_agree` is the
+    positive control that the digest is not simply unstable.
+    """
+
+    @staticmethod
+    def _baseline() -> dict[str, object]:
+        return {
+            "network": DEFAULT_NETWORK,
+            "entry": DEFAULT_ENTRY,
+            "target": DEFAULT_TARGET,
+            "estate": DEFAULT_ESTATE,
+            "island": default_island(),
+            "flow_network": DEFAULT_FLOW_NETWORK,
+            "flow_source": EXFIL_SOURCE,
+            "flow_sink": EXFIL_SINK,
+            "fleet": default_legacy_fleet(),
+            "vulnerabilities": DEFAULT_VULNERABILITIES,
+            "traffic": DEFAULT_TRAFFIC,
+            "defenders": DEFENDERS,
+            "scalars": {"cusum_k": 0.5, "seed": 11},
+        }
+
+    @classmethod
+    def _digest(cls, **overrides: object) -> str:
+        kwargs = cls._baseline()
+        kwargs.update(overrides)
+        return sha256(_scenario_payload(**kwargs).encode("utf-8")).hexdigest()  # type: ignore[arg-type]
+
+    def test_identical_inputs_agree(self) -> None:
+        """Positive control: same inputs, same digest — twice."""
+        assert self._digest() == self._digest()
+
+    def test_production_hash_is_the_payload_digest(self) -> None:
+        """Bind the gate to the shipped call path, not to a parallel copy."""
+        expected = sha256(_default_scenario_payload(DEFAULT_NETWORK).encode("utf-8")).hexdigest()
+        assert _input_hash() == expected
+        assert len(_input_hash()) == 64
+
+    def test_node_exposure(self) -> None:
+        nodes = dict(DEFAULT_NETWORK.nodes)
+        nodes["legacy_ldap"] = replace(nodes["legacy_ldap"], exposure=0.99)
+        mutated = Network(nodes=nodes, edges=DEFAULT_NETWORK.edges, edge_cost=DEFAULT_NETWORK.edge_cost)
+        assert self._digest(network=mutated) != self._digest()
+
+    def test_node_role(self) -> None:
+        nodes = dict(DEFAULT_NETWORK.nodes)
+        nodes["ops_db"] = replace(nodes["ops_db"], role="archive")
+        mutated = Network(nodes=nodes, edges=DEFAULT_NETWORK.edges, edge_cost=DEFAULT_NETWORK.edge_cost)
+        assert self._digest(network=mutated) != self._digest()
+
+    def test_edge_cost(self) -> None:
+        costs = dict(DEFAULT_NETWORK.edge_cost)
+        costs["intranet_hub", "ops_db"] = 2.5
+        mutated = Network(nodes=DEFAULT_NETWORK.nodes, edges=DEFAULT_NETWORK.edges, edge_cost=costs)
+        assert self._digest(network=mutated) != self._digest()
+
+    def test_edge_topology(self) -> None:
+        edges = dict(DEFAULT_NETWORK.edges)
+        edges["intranet_hub"] = ("ops_db", "field_terminal")
+        mutated = Network(nodes=DEFAULT_NETWORK.nodes, edges=edges, edge_cost=DEFAULT_NETWORK.edge_cost)
+        assert self._digest(network=mutated) != self._digest()
+
+    def test_entry_and_target(self) -> None:
+        assert self._digest(entry="demarc") != self._digest()
+        assert self._digest(target="ops_db") != self._digest()
+
+    def test_estate_position(self) -> None:
+        positions = dict(DEFAULT_ESTATE.positions)
+        positions["lake_path"] = (5, 3)
+        mutated = EstateGraph(positions=positions, roads=DEFAULT_ESTATE.roads)
+        assert self._digest(estate=mutated) != self._digest()
+
+    def test_estate_road(self) -> None:
+        roads = {name: tuple(dests) for name, dests in DEFAULT_ESTATE.roads.items()}
+        roads["grounds_east"] = (*roads["grounds_east"], "mansion")
+        roads["mansion"] = (*roads["mansion"], "grounds_east")
+        mutated = EstateGraph(positions=DEFAULT_ESTATE.positions, roads=roads)
+        assert self._digest(estate=mutated) != self._digest()
+
+    def test_island_cell(self) -> None:
+        island = default_island()
+        cells = list(island.cell)
+        cells[-1] = not cells[-1]
+        mutated = IslandGrid(width=island.width, height=island.height, cell=tuple(cells), entry=island.entry)
+        assert self._digest(island=mutated) != self._digest()
+
+    def test_flow_capacity(self) -> None:
+        capacity = dict(DEFAULT_FLOW_NETWORK.capacity)
+        capacity["ops_db", "intranet_hub"] = 8.5
+        mutated = FlowNetwork(nodes=DEFAULT_FLOW_NETWORK.nodes, edges=DEFAULT_FLOW_NETWORK.edges, capacity=capacity)
+        assert self._digest(flow_network=mutated) != self._digest()
+
+    def test_legacy_patch_level(self) -> None:
+        fleet = default_legacy_fleet()
+        fleet["ldap"] = replace(fleet["ldap"], patch_level=0.95)
+        assert self._digest(fleet=fleet) != self._digest()
+
+    def test_legacy_classification(self) -> None:
+        fleet = default_legacy_fleet()
+        fleet["vpn_edge"] = replace(fleet["vpn_edge"], classification="top_secret")
+        assert self._digest(fleet=fleet) != self._digest()
+
+    def test_vulnerability_severity(self) -> None:
+        vulns = list(DEFAULT_VULNERABILITIES)
+        vulns[0] = replace(vulns[0], severity=min(1.0, vulns[0].severity / 2))
+        assert self._digest(vulnerabilities=tuple(vulns)) != self._digest()
+
+    def test_single_traffic_sample(self) -> None:
+        """One sample, changed by one part in a billion, must move the digest."""
+        samples = list(DEFAULT_TRAFFIC)
+        samples[185] += 1e-9
+        assert self._digest(traffic=tuple(samples)) != self._digest()
+
+    def test_whole_traffic_series_shift(self) -> None:
+        shifted = tuple(sample + 1000.0 for sample in DEFAULT_TRAFFIC)
+        assert self._digest(traffic=shifted) != self._digest()
+
+    def test_defenders(self) -> None:
+        assert self._digest(defenders=("Q", "Eve")) != self._digest()
+
+    def test_scalar_knob(self) -> None:
+        assert self._digest(scalars={"cusum_k": 0.75, "seed": 11}) != self._digest()
+
+    def test_provider_hash_follows_the_bound_network(self) -> None:
+        """The shipped provenance — not just the helper — tracks the real input.
+
+        ``dmz_mail`` sits on the canonical shortest intrusion path, so raising
+        its exposure genuinely moves ``success_probability``. Under the old
+        identifier-set hash the results moved while the digest did not.
+        """
+        nodes = dict(DEFAULT_NETWORK.nodes)
+        nodes["dmz_mail"] = replace(nodes["dmz_mail"], exposure=0.99)
+        mutated = Network(nodes=nodes, edges=DEFAULT_NETWORK.edges, edge_cost=DEFAULT_NETWORK.edge_cost)
+
+        default_provider = MissionProvider()
+        exposed_provider = MissionProvider(network=mutated)
+        baseline = default_provider.execute(default_provider.plan(default_provider.brief()))
+        exposed = exposed_provider.execute(exposed_provider.plan(exposed_provider.brief()))
+
+        assert exposed.results != baseline.results
+        assert exposed.provenance.input_hash != baseline.provenance.input_hash

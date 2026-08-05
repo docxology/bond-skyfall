@@ -45,9 +45,11 @@ addopts = "-v --tb=short --strict-markers"
 [tool.coverage.run]
 source = ["src"]
 branch = true
+# No source module is omitted. `src/skyfall/figures/__init__.py` carries real
+# rendering logic, so a blanket `*/__init__.py` omit would silently drop a
+# whole module (74 statements) out of every coverage number this gate prints.
 omit = [
     "tests/*",
-    "*/__init__.py",
     "*/test_*.py",
 ]
 

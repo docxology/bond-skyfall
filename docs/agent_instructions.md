@@ -16,7 +16,9 @@ suggestions; violations fail the gates.
 4. **Coverage above the floor.** `uv run pytest tests/ --cov=src
    --cov-fail-under=90` measures line *and* branch coverage on `src/`. Do not
    quote a percentage in prose — cite the gate and let the run produce the
-   number.
+   number. No source module is omitted from the measurement; do not add an
+   `omit` entry for anything but test files (a blanket `*/__init__.py` omit
+   previously hid `figures/__init__.py` from every reported total).
 5. **Deterministic.** Fixed inputs, no RNG, no wall-clock in any persisted
    metric. The sole exception is `GENERATION_TIMESTAMP`, a build label that
    enters no result.

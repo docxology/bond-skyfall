@@ -31,13 +31,21 @@ document deliberately does not quote one, because a number written in prose
 goes stale the moment a line moves and then quietly misinforms every reader
 after that.
 
+**No source module is omitted from the measurement.** The coverage config used
+to carry a blanket `omit = ["*/__init__.py"]`, which silently dropped
+`src/skyfall/figures/__init__.py` — 74 statements and 18 branches of real
+matplotlib rendering logic — out of every number the gate printed. The reported
+total was therefore a total over a subset. The omit is gone; adding one back for
+anything other than test files is a way of making the gate lie, not a way of
+tidying the report.
+
 Coverage is necessary and nowhere near sufficient. Both real defects this
 package has carried were in fully covered lines.
 
 ## The anti-vacuity doctrine
 
 A green suite is evidence about the tests, not proof about the code. This
-package has two documented cases, kept here because they are the reason the
+package has three documented cases, kept here because they are the reason the
 rules below exist.
 
 **Case 1 — the min-cut theorem that only held on the canonical graph.**
@@ -60,7 +68,20 @@ with five distinct dominant factors and no ties at all. The test that catches
 it constructs two systems identical apart from their ids and asserts the result
 is insertion-order independent.
 
-The rules that follow from those two:
+**Case 3 — the provenance hash that ignored the values.**
+`Provenance.input_hash` was documented as "a SHA-256 over the frozen inputs".
+It hashed identifier *sets* — sorted node names, position names, flow node
+names, vulnerability ids — plus four scalars. Every value was invisible to it:
+a node's exposure, an edge cost, a link capacity, a system's patch level, a
+vulnerability's severity, and all 240 traffic samples could change, moving the
+reported results, while the digest stayed byte-identical. The only test was
+`len(input_hash) == 64`, which a constant would also pass. The gate that
+catches it mutates one input field at a time across sixteen fields and asserts
+the digest moves, with a same-inputs-same-digest positive control so the test
+is not passing on mere instability; reverting the payload builder to the old
+identifier-set form turns sixteen of its nineteen tests red.
+
+The rules that follow from those three:
 
 1. **Test the property, not the scenario.** If a claim is universal ("the cut
    equals the flow", "the order is deterministic"), enumerate a family. A
@@ -118,9 +139,9 @@ that computed it, or the suite is red.
 | `test_legacy_audit.py` | System validation, the shared factor model, exposure score, fleet audit and all four risk labels, tier membership, remediation ordering and tie-breaking |
 | `test_patch_strategy.py` | Vulnerability validation, baseline exposure, greedy schedule, exposure with schedule, reduction metrics |
 | `test_estate_defense.py` | Island grid and topology, Tarjan choke points, road-symmetry enforcement, defense planning, coverage, the no-choke-point plan |
-| `test_mission.py` | Provider identity, structural protocol conformance, five-stage lifecycle, provenance, gadget registry, every conditional debrief lesson, the unreachable-target failure path, pure-core isolation |
+| `test_mission.py` | Provider identity, structural protocol conformance, five-stage lifecycle, provenance, per-field `input_hash` sensitivity (sixteen mutations plus a positive control), gadget registry, every conditional debrief lesson, the unreachable-target failure path, pure-core isolation |
 | `test_manuscript_variables.py` | Config loading and validation, token generation, strict resolution, the reachability seam, and both manuscript-integrity gates |
-| `test_figures.py` | Deterministic PNG rendering of both figures, coverage-fraction typing |
+| `test_figures.py` | Deterministic PNG rendering of both figures, the no-alarm render path (a burst-free series, which the canonical series cannot reach), coverage-fraction typing |
 | `test_scripts_smoke.py` | All three CLIs via real subprocesses, including argparse exit codes |
 
 `conftest.py` pins `MPLBACKEND=Agg` and puts `src/` on `sys.path` so the

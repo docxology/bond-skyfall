@@ -6,6 +6,7 @@ asserts the PNG artifact exists and is byte-identical across runs.
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 from skyfall.estate_defense import DEFAULT_ESTATE, DefensePlan
@@ -16,6 +17,7 @@ from skyfall.figures import (
     render_estate_defense_figure,
     render_traffic_figure,
 )
+from skyfall.traffic_analysis import analyze_traffic
 
 
 class TestFigure:
@@ -60,6 +62,29 @@ class TestTrafficFigure:
 
     def test_default_output_path(self) -> None:
         assert DEFAULT_TRAFFIC_FIGURE_OUTPUT.name == "traffic_detection.png"
+
+    def test_render_without_alarm_omits_alarm_line(self, tmp_path: Path) -> None:
+        """A burst-free series raises no CUSUM alarm, so no alarm line is drawn.
+
+        This exercises the ``report.cusum_alarm_index is None`` arm of the
+        renderer, which the canonical (burst-carrying) series can never reach.
+        The series is the documented baseline rhythm with the +45 packets/hour
+        exfiltration burst removed — real samples, real detector, real render.
+        """
+        calm = tuple(
+            100.0 + 8.0 * math.sin(2.0 * math.pi * hour / 24.0) + 0.5 * math.sin(hour * 1.7) for hour in range(240)
+        )
+        report = analyze_traffic(calm)
+        assert report.cusum_alarm_index is None
+        assert report.burst_detected is False
+
+        out = tmp_path / "calm.png"
+        assert render_traffic_figure(series=calm, output_path=out) == out
+        assert out.stat().st_size > 0
+
+        alarmed = tmp_path / "alarmed.png"
+        render_traffic_figure(output_path=alarmed)
+        assert out.read_bytes() != alarmed.read_bytes()
 
 
 class TestCoverageFraction:

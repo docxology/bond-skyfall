@@ -13,6 +13,8 @@ level under the stable name ``MissionProvider``.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+
 from bond_api.protocol import (
     Asset,
     Constraint,
@@ -29,6 +31,8 @@ from bond_api.protocol import (
 from bond_api.registry import GadgetRegistry
 
 from .cyber_ops import (
+    DEFAULT_BASE_SURVIVAL,
+    DEFAULT_CONTAINMENT_HOPS,
     DEFAULT_ENTRY,
     DEFAULT_NETWORK,
     DEFAULT_TARGET,
@@ -41,6 +45,8 @@ from .cyber_ops import (
 )
 from .estate_defense import (
     DEFAULT_ESTATE,
+    EstateGraph,
+    IslandGrid,
     choke_points,
     defense_coverage,
     default_island,
@@ -51,9 +57,11 @@ from .exfiltration import (
     DEFAULT_FLOW_NETWORK,
     EXFIL_SINK,
     EXFIL_SOURCE,
+    FlowNetwork,
     analyze_exfiltration,
 )
 from .legacy_audit import (
+    LegacySystem,
     audit_fleet,
     default_legacy_fleet,
     prioritize_remediation,
@@ -62,9 +70,15 @@ from .patch_strategy import (
     DEFAULT_DAILY_BUDGET,
     DEFAULT_HORIZON_DAYS,
     DEFAULT_VULNERABILITIES,
+    Vulnerability,
     analyze_patch_schedule,
 )
 from .traffic_analysis import (
+    DEFAULT_BASELINE_WINDOW,
+    DEFAULT_CUSUM_H,
+    DEFAULT_CUSUM_K,
+    DEFAULT_PERIOD,
+    DEFAULT_TRAFFIC,
     EXFIL_WINDOW,
     analyze_traffic,
 )
@@ -93,26 +107,150 @@ DEFENDERS = ("Mallory", "Tanner", "Q", "Eve")
 REMEDIATION_BUDGET = 3
 
 
-def _input_hash() -> str:
-    """Deterministic fingerprint of the SILVA scenario's fixed inputs."""
+def _fmt(value: float) -> str:
+    """Render a float round-trip-exactly (``repr`` is the shortest round-trip)."""
+    return repr(float(value))
+
+
+def _scenario_payload(
+    *,
+    network: Network,
+    entry: str,
+    target: str,
+    estate: EstateGraph,
+    island: IslandGrid,
+    flow_network: FlowNetwork,
+    flow_source: str,
+    flow_sink: str,
+    fleet: Mapping[str, LegacySystem],
+    vulnerabilities: Sequence[Vulnerability],
+    traffic: Sequence[float],
+    defenders: Sequence[str],
+    scalars: Mapping[str, float],
+) -> str:
+    """Serialize every input :meth:`MissionProvider.execute` consumes.
+
+    The serialization is canonical (deterministic ordering) and *total*: every
+    field of every input record is written out, not just its identifier. That
+    totality is the point — an earlier version hashed only identifier sets and
+    four scalars, so mutating a node's ``exposure`` or a traffic sample left
+    the digest unchanged while the reported results moved. ``tests/
+    test_mission.py::TestInputHashSensitivity`` mutates one field at a time and
+    asserts the digest changes, so the property is enforced rather than
+    asserted in prose.
+
+    Args:
+        network: The intrusion network (node attributes and edge costs included).
+        entry: Adversary entry node name.
+        target: High-value target node name.
+        estate: The estate approach graph.
+        island: The island grid used for the hideout topology.
+        flow_network: The exfiltration capacity network.
+        flow_source: Exfiltration source node name.
+        flow_sink: Exfiltration sink node name.
+        fleet: The legacy fleet keyed by system id.
+        vulnerabilities: The patch backlog.
+        traffic: The hourly traffic series.
+        defenders: Defender call signs.
+        scalars: Named scalar parameters (analysis knobs, budgets, seed).
+
+    Returns:
+        A newline-delimited canonical rendering of all of the above.
+    """
+    lines: list[str] = []
+
+    for name in sorted(network.nodes):
+        node = network.nodes[name]
+        lines.append(f"node|{node.name}|{node.role}|{_fmt(node.exposure)}")
+    for src in sorted(network.edges):
+        lines.append(f"edge|{src}|{','.join(network.edges[src])}")
+    for src, dst in sorted(network.edge_cost):
+        lines.append(f"edge_cost|{src}|{dst}|{_fmt(network.edge_cost[src, dst])}")
+    lines.append(f"entry|{entry}")
+    lines.append(f"target|{target}")
+
+    for name in sorted(estate.positions):
+        row, col = estate.positions[name]
+        lines.append(f"estate_pos|{name}|{row}|{col}")
+    for name in sorted(estate.roads):
+        lines.append(f"estate_road|{name}|{','.join(estate.roads[name])}")
+
+    lines.append(f"island|{island.width}|{island.height}|{island.entry[0]}|{island.entry[1]}")
+    lines.append("island_cells|" + "".join("1" if passable else "0" for passable in island.cell))
+
+    lines.append("flow_nodes|" + ",".join(flow_network.nodes))
+    for src in sorted(flow_network.edges):
+        lines.append(f"flow_edge|{src}|{','.join(flow_network.edges[src])}")
+    for src, dst in sorted(flow_network.capacity):
+        lines.append(f"flow_cap|{src}|{dst}|{_fmt(flow_network.capacity[src, dst])}")
+    lines.append(f"flow_terminals|{flow_source}|{flow_sink}")
+
+    for system_id in sorted(fleet):
+        system = fleet[system_id]
+        lines.append(
+            f"legacy|{system.system_id}|{system.name}|{_fmt(system.age_years)}"
+            f"|{_fmt(system.patch_level)}|{system.protocol_era}|{system.open_services}"
+            f"|{system.classification}"
+        )
+
+    for vuln in sorted(vulnerabilities, key=lambda item: item.vuln_id):
+        lines.append(
+            f"vuln|{vuln.vuln_id}|{vuln.system_id}|{_fmt(vuln.severity)}"
+            f"|{vuln.discovered_day}|{_fmt(vuln.patch_effort)}"
+        )
+
+    lines.append("traffic|" + ",".join(_fmt(sample) for sample in traffic))
+    lines.append("defenders|" + ",".join(defenders))
+    for key in sorted(scalars):
+        lines.append(f"scalar|{key}|{_fmt(scalars[key])}")
+
+    return "\n".join(lines)
+
+
+def _default_scenario_payload(network: Network = DEFAULT_NETWORK) -> str:
+    """Serialize the SILVA scenario, with ``network`` as the only variable input."""
+    return _scenario_payload(
+        network=network,
+        entry=DEFAULT_ENTRY,
+        target=DEFAULT_TARGET,
+        estate=DEFAULT_ESTATE,
+        island=default_island(),
+        flow_network=DEFAULT_FLOW_NETWORK,
+        flow_source=EXFIL_SOURCE,
+        flow_sink=EXFIL_SINK,
+        fleet=default_legacy_fleet(),
+        vulnerabilities=DEFAULT_VULNERABILITIES,
+        traffic=DEFAULT_TRAFFIC,
+        defenders=DEFENDERS,
+        scalars={
+            "base_survival": DEFAULT_BASE_SURVIVAL,
+            "containment_hops": DEFAULT_CONTAINMENT_HOPS,
+            "baseline_window": DEFAULT_BASELINE_WINDOW,
+            "cusum_h": DEFAULT_CUSUM_H,
+            "cusum_k": DEFAULT_CUSUM_K,
+            "daily_budget": DEFAULT_DAILY_BUDGET,
+            "exfil_window_end": EXFIL_WINDOW[1],
+            "exfil_window_start": EXFIL_WINDOW[0],
+            "horizon_days": DEFAULT_HORIZON_DAYS,
+            "period": DEFAULT_PERIOD,
+            "remediation_budget": REMEDIATION_BUDGET,
+            "seed": SILVA_SEED,
+        },
+    )
+
+
+def _input_hash(network: Network = DEFAULT_NETWORK) -> str:
+    """SHA-256 over every input the SILVA execute stage consumes.
+
+    Args:
+        network: The intrusion network actually bound to the provider.
+
+    Returns:
+        A 64-character hex digest that changes if any input field changes.
+    """
     from hashlib import sha256
 
-    payload = (
-        "|".join(sorted(DEFAULT_NETWORK.nodes))
-        + "|"
-        + DEFAULT_ENTRY
-        + "|"
-        + DEFAULT_TARGET
-        + "|"
-        + ",".join(sorted(DEFAULT_ESTATE.positions))
-        + "|"
-        + ",".join(sorted(DEFAULT_FLOW_NETWORK.nodes))
-        + "|"
-        + ",".join(sorted(v.vuln_id for v in DEFAULT_VULNERABILITIES))
-        + f"|{DEFAULT_HORIZON_DAYS}|{DEFAULT_DAILY_BUDGET}"
-        + f"|{EXFIL_WINDOW[0]}-{EXFIL_WINDOW[1]}"
-    )
-    return sha256(payload.encode("utf-8")).hexdigest()
+    return sha256(_default_scenario_payload(network).encode("utf-8")).hexdigest()
 
 
 class MissionProvider:  # noqa: N801 — class name fixed by the discovery contract
@@ -295,7 +433,7 @@ class MissionProvider:  # noqa: N801 — class name fixed by the discovery contr
             provenance=Provenance(
                 package_version=PACKAGE_VERSION,
                 seed=SILVA_SEED,
-                input_hash=_input_hash(),
+                input_hash=_input_hash(self._network),
                 wall_time_s=0.0,
             ),
         )

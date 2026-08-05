@@ -154,10 +154,30 @@ module-level `provider` instance.
 | `brief()` | `MissionBrief` | Declares codename `SILVA`, six objectives (intrude, detect, cut, audit, patch, defend), five `Asset`s sized from the live domain data, and two `Constraint`s (determinism, purity). |
 | `recon(ReconRequest)` | `ReconReport` | Eight `Finding`s: entry, target, simple-path count, burst window, fleet size, patch backlog, choke-point count, and the caller's goal echoed back. |
 | `plan(MissionBrief)` | `MissionPlan` | Six `Step`s, one per threat surface, each naming the domain function it will invoke and its parameters. |
-| `execute(MissionPlan)` | `MissionOutcome` | Runs all six analyses against the real domain modules and packs them into `results` under `intrusion` / `detection` / `severance` / `legacy` / `patch_schedule` / `estate`, with a `Provenance` carrying the package version, `SILVA_SEED`, a SHA-256 `input_hash` over the frozen inputs, and `wall_time_s = 0.0` (no wall-clock enters a persisted metric). |
+| `execute(MissionPlan)` | `MissionOutcome` | Runs all six analyses against the real domain modules and packs them into `results` under `intrusion` / `detection` / `severance` / `legacy` / `patch_schedule` / `estate`, with a `Provenance` carrying the package version, `SILVA_SEED`, a SHA-256 `input_hash` over the frozen inputs (see below), and `wall_time_s = 0.0` (no wall-clock enters a persisted metric). |
 | `debrief(MissionOutcome)` | `Debrief` | Five standing lessons, plus up to three conditional lessons appended when coverage is incomplete, the burst went undetected, or the patch schedule cleared less than half the backlog exposure. |
 
-Two design points worth knowing before you edit:
+Three design points worth knowing before you edit:
+
+- **`input_hash` is total over the inputs, and that is enforced.**
+  `_scenario_payload()` writes out *every field of every input record* the
+  execute stage consumes — node names, roles and exposures, every edge and
+  edge cost, entry and target, estate positions and roads, the island grid
+  cells, the flow network's nodes, edges, capacities and terminals, every
+  legacy system's age / patch level / protocol era / open services /
+  classification, every vulnerability's severity, discovery day and effort,
+  all 240 traffic samples, the defender call signs, and the named scalar knobs
+  (base survival, containment hops, baseline window, CUSUM `k` and `h`, period,
+  daily budget, horizon, exfil window, remediation budget, seed). Floats are
+  rendered with `repr`, which round-trips exactly. It hashes the network the
+  provider is actually bound to, not `DEFAULT_NETWORK` unconditionally.
+  An earlier version hashed only identifier *sets* plus four scalars: changing
+  a node's exposure or adding +1000 to every traffic sample moved the reported
+  results while leaving the digest identical. `TestInputHashSensitivity` in
+  `tests/test_mission.py` now mutates one field at a time — sixteen distinct
+  fields — and asserts the digest changes, with a same-inputs-same-digest
+  positive control. Reverting the payload to the old identifier-set form turns
+  sixteen of those nineteen tests red.
 
 - **`execute` reports honest success.** `MissionOutcome.success` reflects
   whether the primary objective could actually be modelled. It used to be
