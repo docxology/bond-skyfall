@@ -15,6 +15,7 @@ from skyfall.estate_defense import (
     EstateGraph,
     IslandGrid,
     IslandTopology,
+    betweenness_centrality,
     choke_points,
     defense_coverage,
     default_island,
@@ -186,3 +187,59 @@ class TestDefensePlanWithoutChokePoints:
         assert plan.defenders_used == 0
         # No choke points means nothing to cover: coverage is 0/0, reported 0.0.
         assert defense_coverage(plan) == 0.0
+
+
+def _path_graph() -> EstateGraph:
+    """The E2 distinguishing graph: a path where every internal node has equal
+    degree (2) but the centre carries the most shortest-path traffic."""
+    return EstateGraph(
+        positions={"a": (0, 0), "b": (1, 0), "c": (2, 0), "d": (3, 0), "e": (4, 0)},
+        roads={
+            "a": ("b",),
+            "b": ("a", "c"),
+            "c": ("b", "d"),
+            "d": ("c", "e"),
+            "e": ("d",),
+        },
+    )
+
+
+class TestBetweenness:
+    def test_line_middle_is_most_central(self) -> None:
+        bc = betweenness_centrality(_path_graph())
+        assert bc["c"] > bc["b"] > 0.0
+        assert bc["c"] == pytest.approx(2.0 / 3.0, abs=1e-9)
+        assert bc["a"] == pytest.approx(0.0)
+
+    def test_all_values_in_unit_interval(self) -> None:
+        for value in betweenness_centrality(DEFAULT_ESTATE).values():
+            assert 0.0 <= value <= 1.0
+
+    def test_canonical_estate_is_stable(self) -> None:
+        a = betweenness_centrality(DEFAULT_ESTATE)
+        b = betweenness_centrality(DEFAULT_ESTATE)
+        assert a == b
+
+    def test_two_node_graph_has_no_betweenness(self) -> None:
+        g = EstateGraph(positions={"a": (0, 0), "b": (1, 0)}, roads={"a": ("b",), "b": ("a",)})
+        assert betweenness_centrality(g) == {"a": 0.0, "b": 0.0}
+
+
+class TestDefenseRank:
+    def test_unknown_rank_raises(self) -> None:
+        with pytest.raises(ValueError, match="rank"):
+            estate_defense_plan(DEFAULT_ESTATE, ("Q",), rank="bogus")
+
+    def test_degree_and_betweenness_disagree_on_path(self) -> None:
+        """Degree sees every internal node as equally important (degree 2) and
+        falls back to id order; betweenness correctly ranks the centre first."""
+        by_degree = estate_defense_plan(_path_graph(), ("d0",), rank="degree")
+        by_between = estate_defense_plan(_path_graph(), ("d0",), rank="betweenness")
+        assert by_degree.assigned == {"b": "d0"}  # lexicographic tie-break
+        assert by_between.assigned == {"c": "d0"}  # real traffic centre
+        assert by_degree.assigned != by_between.assigned
+
+    def test_degree_default_unchanged(self) -> None:
+        # rank="degree" is the default; canonical estate still covers `field` first.
+        plan = estate_defense_plan(DEFAULT_ESTATE, ("Mallory",))
+        assert plan.covered == ("field",)

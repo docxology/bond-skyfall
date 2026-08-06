@@ -69,29 +69,6 @@ requires-dist = [
 provides-extras = ["dev"]
 
 [[package]]
-name = "bond-utilities"
-version = "0.3.0"
-source = { directory = "/Users/4d/Documents/GitHub/template/projects/working/bond/bond-utilities" }
-dependencies = [
-    { name = "matplotlib", version = "3.10.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "matplotlib", version = "3.11.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "pyyaml" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "matplotlib", specifier = ">=3.7.0" },
-    { name = "numpy", specifier = ">=1.24.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
-    { name = "pyyaml", specifier = ">=6.0" },
-]
-provides-extras = ["dev"]
-
-[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -1373,7 +1350,6 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
-    { name = "bond-utilities" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -1384,7 +1360,6 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bond-api", directory = "/Users/4d/Documents/GitHub/template/projects/working/bond/bond-api" },
-    { name = "bond-utilities", marker = "extra == 'dev'", directory = "/Users/4d/Documents/GitHub/template/projects/working/bond/bond-utilities" },
     { name = "matplotlib", specifier = ">=3.7.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10.0" },
     { name = "numpy", specifier = ">=1.24.0" },

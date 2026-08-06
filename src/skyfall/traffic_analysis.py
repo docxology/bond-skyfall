@@ -181,17 +181,27 @@ def cusum_detection(
     An alarm fires at the first index where either accumulation exceeds
     ``h`` (the decision interval in standardized units).
 
+    ``max_cusum`` is the true peak of either accumulation across the *whole*
+    series, not merely its value at the alarm index. A naive implementation
+    returns the running maximum the moment the alarm fires, which under-states
+    the peak whenever the accumulation keeps growing through the remainder of
+    a sustained burst — the exact shape of the exfiltration window. Bound by
+    ``TestMaxCusumIsTheSeriesPeak``.
+
     Returns:
         ``(alarm_index, max_cusum)``; ``alarm_index`` is ``None`` when no
         alarm fires within the series.
     """
     s_pos, s_neg = cusum_series(series, mean, std, k)
+    first_alarm: int | None = None
     max_cusum = 0.0
     for idx in range(len(series)):
-        max_cusum = max(max_cusum, s_pos[idx], s_neg[idx])
-        if s_pos[idx] > h or s_neg[idx] > h:
-            return idx, max_cusum
-    return None, max_cusum
+        p = s_pos[idx]
+        n = s_neg[idx]
+        max_cusum = max(max_cusum, p, n)
+        if first_alarm is None and (p > h or n > h):
+            first_alarm = idx
+    return first_alarm, max_cusum
 
 
 def ewma_series(series: tuple[float, ...], alpha: float) -> tuple[float, ...]:

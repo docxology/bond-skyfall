@@ -25,6 +25,10 @@ biconnectivity formulation of the same search.
 Even, S. (2011). *Graph Algorithms* (2nd ed.). Cambridge University Press. —
 biconnectivity and cut-vertex theory underlying the choke-point analysis.
 
+Brandes, U. (2001). A Faster Algorithm for Betweenness Centrality. *Journal of
+Mathematical Sociology*, 25(2), 163–177. — the betweenness-centrality
+algorithm used to rank estate choke points by shortest-path traffic.
+
 ## Network flow
 
 Edmonds, J., & Karp, R. M. (1972). Theoretical Improvements in Algorithmic

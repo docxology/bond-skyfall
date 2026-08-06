@@ -164,3 +164,47 @@ class TestCanonicalScenario:
     def test_defaults_match_constants(self) -> None:
         assert DEFAULT_CUSUM_K == 0.5
         assert DEFAULT_CUSUM_H == 5.0
+
+
+class TestMaxCusumIsTheSeriesPeak:
+    """`max_cusum` must be the peak over the whole series, not merely its value
+    at the alarm index.
+
+    The earlier implementation returned the running maximum the moment the
+    alarm fired. On the canonical burst the CUSUM keeps accumulating through
+    the whole exfiltration window, so the reported "peak" under-stated the
+    true peak by an order of magnitude while a consumer read it as the
+    strongest evidence the detector gathered.
+    """
+
+    def test_canonical_peak_is_the_global_max(self) -> None:
+        from skyfall.traffic_analysis import (
+            DEFAULT_BASELINE_WINDOW,
+            DEFAULT_PERIOD,
+            baseline_statistics,
+            cusum_series,
+            detrend,
+            periodic_baseline,
+        )
+
+        report = analyze_traffic()
+        periodic = periodic_baseline(DEFAULT_TRAFFIC, DEFAULT_BASELINE_WINDOW, DEFAULT_PERIOD)
+        residuals = detrend(DEFAULT_TRAFFIC, periodic)
+        mean, std = baseline_statistics(residuals, DEFAULT_BASELINE_WINDOW)
+        pos, neg = cusum_series(residuals, mean, std, DEFAULT_CUSUM_K)
+        global_peak = max(max(pos), max(neg))
+        assert report.max_cusum == pytest.approx(global_peak)
+
+    def test_peak_is_reached_after_the_alarm(self) -> None:
+        # The peak lands inside the burst window, strictly after the alarm,
+        # which is exactly the case the running-max-at-alarm bug botched.
+        report = analyze_traffic()
+        assert report.cusum_alarm_index is not None
+        # The running-at-alarm peak (~127) is dwarfed by the true peak, which
+        # is gathered over the remainder of the burst window.
+        assert report.max_cusum > DEFAULT_CUSUM_H * 2 * 10
+
+    def test_detection_timing_is_unchanged(self) -> None:
+        # The fix must shrink no detection claim; only the reported peak moves.
+        assert analyze_traffic().cusum_alarm_index == 180
+        assert analyze_traffic().best_change_point == 180

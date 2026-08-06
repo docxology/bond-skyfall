@@ -72,6 +72,13 @@ class TestGenerateVariables:
         assert vars_["SILVA_NUM_VULNERABILITIES"] == "12"
         assert vars_["SILVA_PATCHED_COUNT"] == "12"
         assert vars_["SILVA_SEVERANCE"].startswith("sever ")
+        # Round-2 deepened tokens.
+        assert vars_["SILVA_NUM_FLOW_EDGES"] == "9"
+        assert vars_["SILVA_COUPLED_PATCHED_COUNT"] == "12"
+        assert vars_["SILVA_COUPLING_DISCOUNT"] == "0.50"
+        assert vars_["SILVA_ESTATE_RANKING_AGREES"] == "yes"
+        assert vars_["SILVA_TOP_BETWEENNESS_CHOKE"] == "field"
+        assert vars_["SILVA_MAX_CUSUM"] == "1281.8"
 
     def test_explicit_config_path(self, tmp_path: Path) -> None:
         from skyfall.manuscript_variables import generate_variables

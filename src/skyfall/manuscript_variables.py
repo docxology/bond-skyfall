@@ -34,6 +34,7 @@ from .cyber_ops import (
 )
 from .estate_defense import (
     DEFAULT_ESTATE,
+    betweenness_centrality,
     choke_points,
     defense_coverage,
     default_island,
@@ -54,8 +55,10 @@ from .legacy_audit import (
 from .patch_strategy import (
     DEFAULT_DAILY_BUDGET,
     DEFAULT_HORIZON_DAYS,
+    DEFAULT_SYSTEM_DISCOUNT,
     DEFAULT_VULNERABILITIES,
     analyze_patch_schedule,
+    analyze_patch_schedule_coupled,
 )
 from .traffic_analysis import (
     DEFAULT_BASELINE_WINDOW,
@@ -175,6 +178,11 @@ def generate_variables(
     traffic = analyze_traffic()
     exfil = analyze_exfiltration()
     patches = analyze_patch_schedule()
+    coupled = analyze_patch_schedule_coupled()
+    centrality = betweenness_centrality(DEFAULT_ESTATE)
+    choke_degree_rank = sorted(points, key=lambda p: (-len(DEFAULT_ESTATE.neighbours(p)), p))
+    choke_between_rank = sorted(points, key=lambda p: (-centrality[p], p))
+    ranking_agrees = choke_degree_rank == choke_between_rank
 
     num_intrusion_paths = len(intrusion_paths(DEFAULT_NETWORK, DEFAULT_ENTRY, DEFAULT_TARGET))
     shortest_hops = len(shortest.hosts) - 1 if shortest is not None else 0
@@ -217,6 +225,7 @@ def generate_variables(
         "SILVA_CUSUM_H": f"{DEFAULT_CUSUM_H:.1f}",
         "SILVA_MAX_CUSUM": f"{traffic.max_cusum:.1f}",
         "SILVA_NUM_FLOW_NODES": str(len(DEFAULT_FLOW_NETWORK.nodes)),
+        "SILVA_NUM_FLOW_EDGES": str(sum(len(v) for v in DEFAULT_FLOW_NETWORK.edges.values())),
         "SILVA_MAX_FLOW": f"{exfil['max_flow']:.1f}",
         "SILVA_MIN_CUT_VALUE": f"{exfil['min_cut_value']:.1f}",
         "SILVA_SEVERANCE": ", ".join(exfil["severance"]) if exfil["severance"] else "none",
@@ -236,9 +245,15 @@ def generate_variables(
         "SILVA_PATCH_BASELINE": f"{patches['baseline_exposure']:.1f}",
         "SILVA_PATCH_SCHEDULED": f"{patches['scheduled_exposure']:.1f}",
         "SILVA_PATCH_REDUCTION": f"{patches['reduction_ratio']:.0%}",
+        "SILVA_COUPLED_PATCHED_COUNT": str(coupled["patched_count"]),
+        "SILVA_COUPLED_PATCH_SCHEDULED": f"{coupled['scheduled_exposure']:.1f}",
+        "SILVA_COUPLED_PATCH_REDUCTION": f"{coupled['reduction_ratio']:.0%}",
+        "SILVA_COUPLING_DISCOUNT": f"{DEFAULT_SYSTEM_DISCOUNT:.2f}",
         "SILVA_NUM_ESTATE_POSITIONS": str(len(DEFAULT_ESTATE.positions)),
         "SILVA_NUM_CHOKE_POINTS": str(len(points)),
         "SILVA_CHOKE_POINTS": ", ".join(points) if points else "none",
+        "SILVA_TOP_BETWEENNESS_CHOKE": choke_between_rank[0] if points else "none",
+        "SILVA_ESTATE_RANKING_AGREES": "yes" if ranking_agrees else "no",
         "SILVA_NUM_DEFENDERS": str(len(DEFENDERS)),
         "SILVA_DEFENDERS_USED": str(defense.defenders_used),
         "SILVA_COVERAGE": f"{defense_coverage(defense):.2f}",

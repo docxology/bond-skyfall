@@ -37,11 +37,15 @@ __all__ = [
     "PatchSummary",
     "fleet_exposure",
     "schedule_patches",
+    "schedule_patches_coupled",
     "exposure_with_schedule",
     "reduction",
+    "analyze_patch_schedule",
+    "analyze_patch_schedule_coupled",
     "DEFAULT_VULNERABILITIES",
     "DEFAULT_HORIZON_DAYS",
     "DEFAULT_DAILY_BUDGET",
+    "DEFAULT_SYSTEM_DISCOUNT",
 ]
 
 
@@ -154,6 +158,113 @@ def schedule_patches(
             del pending[vuln.vuln_id]
             budget_left -= vuln.patch_effort
     return tuple(entries)
+
+
+#: Per-system patching discount: the cost of the second (and later) patch on
+#: an already-open system, as a multiple of its base effort. Real maintenance
+#: windows amortize — the second flaw on a box is cheaper to close than the
+#: first.
+DEFAULT_SYSTEM_DISCOUNT = 0.5
+
+
+def schedule_patches_coupled(
+    vulnerabilities: tuple[Vulnerability, ...],
+    horizon_days: int,
+    daily_budget: float,
+    *,
+    system_discount: float = DEFAULT_SYSTEM_DISCOUNT,
+) -> tuple[ScheduleEntry, ...]:
+    """Greedy scheduler with per-system batching discounts.
+
+    Identical greed to :func:`schedule_patches` (highest severity first,
+    ties by id, patching only after discovery) except that the second and
+    later patch on an already-open ``system_id`` costs
+    ``patch_effort * system_discount`` instead of the full ``patch_effort``.
+    The first patch on a system is always charged in full, so the discount
+    models amortized maintenance windows without ever making a patch free.
+
+    Because two flaws on the same system can now be closed in one day, the
+    produced schedule differs from the undiscounted one whenever the budget
+    would otherwise have split them across days — bound by
+    ``TestScheduleCoupled``.
+
+    Args:
+        vulnerabilities: The known vulnerabilities.
+        horizon_days: Number of days in the scheduling horizon.
+        daily_budget: Patching capacity (in effort units) available each day.
+        system_discount: Multiplier applied to every patch after the first on
+            a given system, in ``[0, 1]`` (0 would make later patches free).
+
+    Returns:
+        An ordered tuple of :class:`ScheduleEntry`.
+
+    Raises:
+        ValueError: if ``horizon_days < 0``, ``daily_budget <= 0``, or
+            ``system_discount`` is outside ``[0, 1]``.
+    """
+    if horizon_days < 0:
+        raise ValueError("horizon_days must be >= 0")
+    if daily_budget <= 0:
+        raise ValueError("daily_budget must be positive")
+    if not 0.0 <= system_discount <= 1.0:
+        raise ValueError("system_discount must be in [0, 1]")
+    pending = {vuln.vuln_id: vuln for vuln in vulnerabilities}
+    entries: list[ScheduleEntry] = []
+    patched_systems: set[str] = set()
+    for day in range(horizon_days):
+        available = [vuln for vuln in pending.values() if vuln.discovered_day <= day]
+        if not available:
+            continue
+        ordered = sorted(available, key=lambda v: (-v.severity, v.vuln_id))
+        budget_left = daily_budget
+        for vuln in ordered:
+            if vuln.system_id in patched_systems:
+                cost = vuln.patch_effort * system_discount
+            else:
+                cost = vuln.patch_effort
+            if budget_left < cost:
+                continue
+            entries.append(ScheduleEntry(day=day, vuln_id=vuln.vuln_id, system_id=vuln.system_id))
+            del pending[vuln.vuln_id]
+            patched_systems.add(vuln.system_id)
+            budget_left -= cost
+    return tuple(entries)
+
+
+def analyze_patch_schedule_coupled(
+    vulnerabilities: tuple[Vulnerability, ...] | None = None,
+    horizon_days: int | None = None,
+    daily_budget: float | None = None,
+    *,
+    system_discount: float | None = None,
+) -> dict[str, Any]:
+    """Run the coupling-aware schedule and return a deterministic summary.
+
+    Same shape as :func:`analyze_patch_schedule` (schedule, patched count,
+    baseline/scheduled exposure, reductions) plus the applied
+    ``system_discount``. Defaults resolve at call time to the canonical
+    constants (the module's forward-defined data) so this routine can be
+    declared before them.
+    """
+    if vulnerabilities is None:
+        vulnerabilities = DEFAULT_VULNERABILITIES
+    if horizon_days is None:
+        horizon_days = DEFAULT_HORIZON_DAYS
+    if daily_budget is None:
+        daily_budget = DEFAULT_DAILY_BUDGET
+    if system_discount is None:
+        system_discount = DEFAULT_SYSTEM_DISCOUNT
+    entries = schedule_patches_coupled(vulnerabilities, horizon_days, daily_budget, system_discount=system_discount)
+    summary = reduction(vulnerabilities, entries, horizon_days)
+    return {
+        "schedule": [(e.day, e.vuln_id, e.system_id) for e in entries],
+        "patched_count": summary.patched_count,
+        "baseline_exposure": round(summary.baseline_exposure, 4),
+        "scheduled_exposure": round(summary.scheduled_exposure, 4),
+        "reduction_abs": round(summary.reduction_abs, 4),
+        "reduction_ratio": round(summary.reduction_ratio, 4),
+        "system_discount": system_discount,
+    }
 
 
 def exposure_with_schedule(

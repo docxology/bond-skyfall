@@ -208,3 +208,46 @@ class TestFlowNetworkValidation:
 
     def test_out_neighbours_of_unknown_node(self) -> None:
         assert DEFAULT_FLOW_NETWORK.out_neighbours("ghost") == ()
+
+
+class TestFlowTopologyDerived:
+    """The exfiltration topology is derived from, not hand-copied from, the
+    intrusion network — so adding a node to one can no longer silently leave
+    the other stale (the V1 drift contract).
+    """
+
+    def test_derived_node_set_matches_canonical(self) -> None:
+        from skyfall.cyber_ops import DEFAULT_NETWORK
+        from skyfall.exfiltration import cyber_flow_topology
+
+        nodes, _edges = cyber_flow_topology(DEFAULT_NETWORK)
+        assert set(nodes) == set(DEFAULT_FLOW_NETWORK.nodes)
+
+    def test_derived_directed_edges_match_canonical(self) -> None:
+        from skyfall.cyber_ops import DEFAULT_NETWORK
+        from skyfall.exfiltration import cyber_flow_topology
+
+        _nodes, edges = cyber_flow_topology(DEFAULT_NETWORK)
+        derived = {(u, v) for u, vs in edges.items() for v in vs}
+        canonical = {(u, v) for u, vs in DEFAULT_FLOW_NETWORK.edges.items() for v in vs}
+        assert derived == canonical
+
+    def test_field_terminal_leaf_is_dropped(self) -> None:
+        from skyfall.cyber_ops import DEFAULT_NETWORK
+        from skyfall.exfiltration import cyber_flow_topology
+
+        nodes, edges = cyber_flow_topology(DEFAULT_NETWORK)
+        assert "field_terminal" not in nodes
+        assert all("field_terminal" not in (u, v) for u, vs in edges.items() for v in vs)
+
+    def test_new_intrusion_node_propagates_to_derived_topology(self) -> None:
+        from skyfall.cyber_ops import DEFAULT_NETWORK, build_network
+        from skyfall.exfiltration import cyber_flow_topology
+
+        nodes = dict(DEFAULT_NETWORK.nodes)
+        nodes["rogue_box"] = __import__("skyfall.cyber_ops", fromlist=["Node"]).Node("rogue_box", "host", 0.5)
+        edges = dict(DEFAULT_NETWORK.edges)
+        edges["demarc"] = (*edges["demarc"], "rogue_box")
+        mutated = build_network(nodes=nodes.values(), edges=edges, edge_cost=DEFAULT_NETWORK.edge_cost)
+        m_nodes, _m_edges = cyber_flow_topology(mutated)
+        assert "rogue_box" in m_nodes

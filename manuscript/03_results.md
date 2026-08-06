@@ -35,7 +35,10 @@ of equal value ({{SILVA_MIN_CUT_VALUE}}) is `{{SILVA_SEVERANCE}}`. Severing
 exactly those links stops the exfiltration. The equality is not a property of
 this scenario alone: an enumerated sweep over a family of five-node networks —
 including ones whose maximum flow requires reverse residual arcs — confirms
-`value(cut) == value(flow)` on every member.
+`value(cut) == value(flow)` on every member. The flow projection's topology is
+derived from the intrusion network ({{SILVA_NUM_FLOW_EDGES}} directed edges
+across {{SILVA_NUM_FLOW_NODES}} nodes), so the two views of the same network
+cannot drift.
 
 ![MI6 HQ traffic detection — residual series with CUSUM alarm](../output/figures/traffic_detection.png){#fig:traffic_detection}
 
@@ -52,6 +55,14 @@ patches all {{SILVA_PATCHED_COUNT}}, cutting cumulative exposure from a
 no-patching baseline of {{SILVA_PATCH_BASELINE}} severity-days to
 {{SILVA_PATCH_SCHEDULED}} — a {{SILVA_PATCH_REDUCTION}} reduction.
 
+Amortizing maintenance windows — charging {{SILVA_COUPLING_DISCOUNT}}× effort
+for every patch after the first on an already-open system — closes the same
+backlog at {{SILVA_COUPLED_PATCH_SCHEDULED}} severity-days, a
+{{SILVA_COUPLED_PATCH_REDUCTION}} reduction (all
+{{SILVA_COUPLED_PATCHED_COUNT}} patched). The saving comes from consolidating two
+flaws on one box onto a single maintenance slot, which the uncoupled
+scheduler could not.
+
 ## Estate defense
 
 Of the estate's {{SILVA_NUM_ESTATE_POSITIONS}} positions,
@@ -63,6 +74,13 @@ island hideout admits {{SILVA_ISLAND_REACHABLE}} reachable cells behind a
 perimeter of {{SILVA_ISLAND_PERIMETER}}; its contested approach corridor is
 {{SILVA_ISLAND_CORRIDOR}} cells long, terminating at the hideout cell
 ({{SILVA_ISLAND_HIDEOUT}}).
+
+Ranking the {{SILVA_NUM_CHOKE_POINTS}} choke points by betweenness centrality —
+the share of all shortest-path traffic through each position — agrees with the
+degree ranking on this estate ({{SILVA_ESTATE_RANKING_AGREES}}), with
+`{{SILVA_TOP_BETWEENNESS_CHOKE}}` carrying the most traffic. The two priority
+orders diverge in general (a path-shaped approach is the counterexample), and
+the package provides both.
 
 The flagship figure ([@fig:estate_defense]) maps the estate approach graph,
 highlights the choke points, and annotates the assigned defender at each

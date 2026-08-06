@@ -16,6 +16,14 @@ scoped as a model, and never presented as measurements of real infrastructure.
 The value is in clean problem formulation, exact algorithms, and honest
 measurement.
 
+The betweenness-ranked defense and the coupling-aware scheduler are deliberate
+*modeling extensions*, provided and tested alongside their defaults rather
+than replacing them: the canonical recorded figures stay fixed unless the
+variant is invoked, so the manuscript's headline numbers are not disturbed by
+the richer alternatives. Likewise the coupling discount
+({{SILVA_COUPLING_DISCOUNT}}×) and the exposure/severity weights are model
+parameters, not measurements of real infrastructure.
+
 ## Related work
 
 The algorithms used here are textbook, and the security framings they serve are
@@ -31,7 +39,10 @@ established practice:
   1962) supplies the exfiltration severance.
 - **Tarjan's articulation-point algorithm** (Tarjan 1972; Hopcroft & Tarjan
   1973; Even 2011) finds cut vertices — the choke points — and is standard in
-  network-resilience and defensive-planning work.
+  network-resilience and defensive-planning work. **Betweenness centrality**
+  (Brandes 2001) ranks those choke points by the share of shortest-path
+  traffic each carries, complementing degree when scarce defenders must be
+  placed.
 - **CUSUM change-point detection** (Page 1954; Montgomery 2012; Hawkins &
   Olwell 1998) underpins the traffic detector; the two-segment likelihood split
   is the single-change-point special case of the segmentation objective treated

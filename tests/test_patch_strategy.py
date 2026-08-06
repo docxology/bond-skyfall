@@ -17,10 +17,12 @@ from skyfall.patch_strategy import (
     ScheduleEntry,
     Vulnerability,
     analyze_patch_schedule,
+    analyze_patch_schedule_coupled,
     exposure_with_schedule,
     fleet_exposure,
     reduction,
     schedule_patches,
+    schedule_patches_coupled,
 )
 
 
@@ -111,3 +113,68 @@ class TestReduction:
         a = analyze_patch_schedule()
         b = analyze_patch_schedule()
         assert a == b
+
+
+class TestScheduleCoupled:
+    """Per-system batching discount: the second patch on an already-open system
+    is cheaper, so two flaws on one system can close in the same day."""
+
+    @staticmethod
+    def _two_on_one_system() -> tuple[Vulnerability, ...]:
+        return (
+            Vulnerability("A", "sys", 10.0, 0, patch_effort=0.5),
+            Vulnerability("B", "sys", 9.0, 0, patch_effort=1.0),
+        )
+
+    def test_uncoupled_splits_across_days(self) -> None:
+        base = schedule_patches(self._two_on_one_system(), 10, 1.0)
+        assert [(e.day, e.vuln_id) for e in base] == [(0, "A"), (1, "B")]
+
+    def test_coupled_patches_second_same_day(self) -> None:
+        coupled = schedule_patches_coupled(self._two_on_one_system(), 10, 1.0, system_discount=0.5)
+        assert [(e.day, e.vuln_id) for e in coupled] == [(0, "A"), (0, "B")]
+
+    def test_schedules_differ(self) -> None:
+        base = schedule_patches(self._two_on_one_system(), 10, 1.0)
+        coupled = schedule_patches_coupled(self._two_on_one_system(), 10, 1.0, system_discount=0.5)
+        assert base != coupled
+
+    def test_first_patch_always_full_cost(self) -> None:
+        # Even a 0.0 discount cannot make the *first* patch on a system free.
+        vulns = (Vulnerability("A", "sys", 5.0, 0, patch_effort=1.0),)
+        out = schedule_patches_coupled(vulns, 10, 1.0, system_discount=0.0)
+        assert [(e.day, e.vuln_id) for e in out] == [(0, "A")]
+
+    def test_discount_out_of_range_raises(self) -> None:
+        with pytest.raises(ValueError):
+            schedule_patches_coupled((), 10, 1.0, system_discount=1.5)
+        with pytest.raises(ValueError):
+            schedule_patches_coupled((), 10, 1.0, system_discount=-0.1)
+
+    def test_canonical_coupled_reduces_more_than_uncoupled(self) -> None:
+        uncoupled = analyze_patch_schedule()["reduction_ratio"]
+        coupled = analyze_patch_schedule_coupled()["reduction_ratio"]
+        assert coupled > uncoupled
+
+    def test_coupled_deterministic(self) -> None:
+        a = analyze_patch_schedule_coupled()
+        b = analyze_patch_schedule_coupled()
+        assert a == b
+
+    def test_negative_horizon_raises(self) -> None:
+        with pytest.raises(ValueError, match="horizon"):
+            schedule_patches_coupled((), -1, 1.0)
+
+    def test_zero_budget_raises(self) -> None:
+        with pytest.raises(ValueError, match="daily_budget"):
+            schedule_patches_coupled((), 10, 0.0)
+
+    def test_analyze_coupled_explicit_args(self) -> None:
+        out = analyze_patch_schedule_coupled(
+            vulnerabilities=(Vulnerability("A", "s", 5.0, 0, patch_effort=1.0),),
+            horizon_days=5,
+            daily_budget=1.0,
+            system_discount=0.8,
+        )
+        assert out["system_discount"] == 0.8
+        assert out["patched_count"] == 1

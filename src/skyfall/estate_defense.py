@@ -31,6 +31,7 @@ __all__ = [
     "EstateGraph",
     "island_topology",
     "choke_points",
+    "betweenness_centrality",
     "estate_defense_plan",
     "defense_coverage",
     "default_island",
@@ -258,6 +259,62 @@ def choke_points(graph: EstateGraph) -> tuple[str, ...]:
     return tuple(sorted(is_artic))
 
 
+def betweenness_centrality(graph: EstateGraph) -> dict[str, float]:
+    """Return the betweenness centrality of every estate position.
+
+    Betweenness centrality of a position ``v`` is the fraction of all
+    shortest paths (over every unordered pair of other positions) that pass
+    through ``v``:
+
+    ``C_B(v) = sum_{s != t != v} sigma_st(v) / sigma_st``
+
+    computed exactly with Brandes' algorithm (Brandes 2001), normalized to
+    ``[0, 1]`` for an undirected graph (raw counts divided by
+    ``(n-1)(n-2)``). It answers "how much traffic must route through here",
+    which is the question defender assignment is really asking — and unlike
+    degree it is not fooled by a low-degree bridge that every route is forced
+    across. Deterministic: neighbours are visited in sorted order.
+
+    Args:
+        graph: The estate approach graph.
+
+    Returns:
+        A map from position name to its normalized betweenness ``[0, 1]``.
+    """
+    positions = graph.positions
+    n = len(positions)
+    cb = {name: 0.0 for name in positions}
+    if n <= 2:
+        return cb
+    for source in sorted(positions):
+        stack: list[str] = []
+        predecessors: dict[str, list[str]] = {w: [] for w in positions}
+        sigma: dict[str, float] = {w: 0.0 for w in positions}
+        sigma[source] = 1.0
+        dist: dict[str, int] = {w: -1 for w in positions}
+        dist[source] = 0
+        queue = deque([source])
+        while queue:
+            v = queue.popleft()
+            stack.append(v)
+            for w in sorted(graph.neighbours(v)):
+                if dist[w] < 0:
+                    dist[w] = dist[v] + 1
+                    queue.append(w)
+                if dist[w] == dist[v] + 1:
+                    sigma[w] += sigma[v]
+                    predecessors[w].append(v)
+        delta: dict[str, float] = {w: 0.0 for w in positions}
+        while stack:
+            w = stack.pop()
+            for v in predecessors[w]:
+                delta[v] += (sigma[v] / sigma[w]) * (1.0 + delta[w])
+            if w != source:
+                cb[w] += delta[w]
+    factor = 1.0 / ((n - 1) * (n - 2))
+    return {name: value * factor for name, value in cb.items()}
+
+
 @dataclass(frozen=True)
 class DefensePlan:
     """A defense assignment: defenders placed at estate choke points."""
@@ -279,6 +336,8 @@ def defense_coverage(plan: DefensePlan) -> float:
 def estate_defense_plan(
     graph: EstateGraph,
     defenders: Iterable[str],
+    *,
+    rank: str = "degree",
 ) -> DefensePlan:
     """Assign a limited team of defenders to cover the estate's choke points.
 
@@ -289,18 +348,33 @@ def estate_defense_plan(
     Args:
         graph: The estate approach graph.
         defenders: Ordered list of defender call signs (or station names).
+        rank: How choke points are prioritized for scarce defenders. ``"degree"``
+            (default) ranks by number of connected positions; ``"betweenness"``
+            ranks by betweenness centrality, which answers which choke point
+            carries the most shortest-path traffic (better for a low-degree
+            bridge every route is forced across).
 
     Returns:
         A :class:`DefensePlan` mapping choke point -> assigned defender, with
         the covered and uncovered choke-point lists.
+
+    Raises:
+        ValueError: if ``rank`` is not ``"degree"`` or ``"betweenness"``.
     """
+    if rank not in ("degree", "betweenness"):
+        raise ValueError(f"rank must be 'degree' or 'betweenness', got {rank!r}")
     points = choke_points(graph)
     if not points:
         return DefensePlan(assigned={}, covered=(), uncovered=(), defenders_used=0)
     defender_list = list(defenders)
-    # Rank choke points by graph centrality: number of connected positions.
-    degree = {name: len(graph.neighbours(name)) for name in points}
-    ranked = sorted(points, key=lambda p: (-degree[p], p))
+    # Rank choke points by structural importance.
+    value: dict[str, float]
+    if rank == "degree":
+        value = {name: float(len(graph.neighbours(name))) for name in points}
+    else:
+        centrality = betweenness_centrality(graph)
+        value = {name: centrality[name] for name in points}
+    ranked = sorted(points, key=lambda p: (-value[p], p))
     assigned: dict[str, str] = {}
     for idx, point in enumerate(ranked[: len(defender_list)]):
         defender = defender_list[idx]

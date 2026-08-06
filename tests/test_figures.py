@@ -104,3 +104,47 @@ class TestCoverageFraction:
     def test_defense_plan_empty(self) -> None:
         plan = DefensePlan(assigned={}, covered=(), uncovered=(), defenders_used=0)
         assert defense_coverage_fraction(plan) == 0.0
+
+
+class TestHashSeedByteIdentity:
+    """Figure bytes must not depend on hash-randomised iteration order.
+
+    Renders each figure in two subprocesses with different PYTHONHASHSEED
+    values and compares bytes — the cross-process form of the in-process
+    determinism assertions, which is what AGENTS.md claims.
+    """
+
+    @staticmethod
+    def _render(seed: str, tmp_path: Path, fn: str, out: Path) -> None:
+        import os
+        import subprocess
+        import sys
+
+        src_abs = Path(__file__).resolve().parent.parent / "src"
+        code = (
+            "import sys; sys.path.insert(0, " + repr(str(src_abs)) + "); "
+            f"from skyfall.figures import {fn}; "
+            f"{fn}(output_path=__import__('pathlib').Path(" + repr(str(out)) + "))"
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            cwd=tmp_path,
+            env={**os.environ, "PYTHONHASHSEED": seed, "MPLBACKEND": "Agg"},
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr
+
+    def test_estate_figure_cross_hashseed(self, tmp_path: Path) -> None:
+        a = tmp_path / "a.png"
+        b = tmp_path / "b.png"
+        self._render("1", tmp_path, "render_estate_defense_figure", a)
+        self._render("2", tmp_path, "render_estate_defense_figure", b)
+        assert a.read_bytes() == b.read_bytes()
+
+    def test_traffic_figure_cross_hashseed(self, tmp_path: Path) -> None:
+        a = tmp_path / "ta.png"
+        b = tmp_path / "tb.png"
+        self._render("1", tmp_path, "render_traffic_figure", a)
+        self._render("2", tmp_path, "render_traffic_figure", b)
+        assert a.read_bytes() == b.read_bytes()

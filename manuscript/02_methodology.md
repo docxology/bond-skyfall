@@ -63,6 +63,14 @@ cut value equals the max flow (both {{SILVA_MAX_FLOW}}) on every network, and
 the property is pinned by an enumerated sweep rather than by the canonical
 scenario alone. The severance plan is {{SILVA_SEVERANCE}}.
 
+The flow network's topology is not hand-copied from the intrusion network:
+it is *derived* by :func:`exfiltration.cyber_flow_topology`, which reverses
+each intrusion edge (data leaves outward) and drops the dead-end
+`field_terminal` leaf. It has {{SILVA_NUM_FLOW_NODES}} nodes and
+{{SILVA_NUM_FLOW_EDGES}} directed edges, and because it is constructed from
+the intrusion graph, a change to one topology can no longer silently leave
+the other stale.
+
 ## Legacy exposure model (`skyfall.legacy_audit`)
 
 Each legacy system contributes four normalized risk factors — age
@@ -94,6 +102,17 @@ severity-days accrued until each patch lands. Against a no-patching baseline
 of {{SILVA_PATCH_BASELINE}} severity-days, the schedule reduces exposure to
 {{SILVA_PATCH_SCHEDULED}} — a {{SILVA_PATCH_REDUCTION}} reduction.
 
+Real maintenance windows amortize, so the package also provides
+:func:`patch_strategy.schedule_patches_coupled`: the second and later patch on
+an already-open system costs a fraction ({{SILVA_COUPLING_DISCOUNT}}×) of its
+base effort, modelling the reality that re-patching a box you have already
+touched is cheaper than opening it for the first time. Re-scheduling the same
+backlog with that discount patches all {{SILVA_COUPLED_PATCHED_COUNT}}
+vulnerabilities at a scheduled exposure of {{SILVA_COUPLED_PATCH_SCHEDULED}}
+severity-days — a {{SILVA_COUPLED_PATCH_REDUCTION}} reduction versus the
+baseline — because couples on the same system close together instead of
+claiming separate maintenance slots.
+
 ## Estate defense model (`skyfall.estate_defense`)
 
 The Skyfall estate approach is an undirected graph of
@@ -109,6 +128,15 @@ There are `{{SILVA_NUM_CHOKE_POINTS}}` choke points ({{SILVA_CHOKE_POINTS}}).
 A defense plan assigns the finite defending team (`{{SILVA_NUM_DEFENDERS}}`
 defenders) to the highest-degree choke points first, reporting any that remain
 uncovered ({{SILVA_DEFENDERS_USED}} posted, coverage {{SILVA_COVERAGE}}).
+
+Degree is not the only answer to "which choke point matters most".
+:func:`estate_defense.betweenness_centrality` computes each position's share
+of all shortest-path traffic, which correctly elevates a low-degree bridge
+that every route is forced across. On the canonical estate the two priority
+orders agree ({{SILVA_ESTATE_RANKING_AGREES}}) — `{{SILVA_TOP_BETWEENNESS_CHOKE}}`
+ranks first by both measures — but on a path-shaped approach they diverge, a
+distinction the defence tests pin. Both rankings are provided; ``"degree"``
+remains the default.
 
 Silva's island hideout is a passable cell grid with a single beachhead; a
 flood fill computes the reachable area ({{SILVA_ISLAND_REACHABLE}} cells), the

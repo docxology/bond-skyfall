@@ -25,9 +25,12 @@ fixed constants, and the module imports nothing but the standard library.
 
 from __future__ import annotations
 
-from collections import deque
+from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from typing import Any
+
+from .cyber_ops import DEFAULT_NETWORK as _INTRUSION_NETWORK
+from .cyber_ops import Network as _CyberNetwork
 
 __all__ = [
     "FlowNetwork",
@@ -247,34 +250,52 @@ def severance_plan(cut: CutResult) -> tuple[str, ...]:
     return tuple(f"sever {u} -> {v}" for u, v in cut.edges)
 
 
+def cyber_flow_topology(
+    network: _CyberNetwork,
+    *,
+    drop: frozenset[str] = frozenset({"field_terminal"}),
+) -> tuple[tuple[str, ...], dict[str, tuple[str, ...]]]:
+    """Derive the exfiltration flow topology from an intrusion ``network``.
+
+    The flow problem runs *opposite* the intrusion: data leaves ``registry``
+    toward ``internet``, so each cyber edge ``src -> dst`` becomes a flow edge
+    ``dst -> src``. Nodes and edges touching a name in ``drop`` are removed —
+    the ``field_terminal`` leaf, a dead-end workstation with no onward path
+    to the sink.
+
+    Returns ``(nodes, edges)`` deterministically (directed edges are
+    canonical-sorted). This is the single source of truth for
+    :data:`DEFAULT_FLOW_NETWORK`'s topology: the hand-written literal it
+    replaced had duplicated the intrusion topology by eye, so adding a node to
+    one network silently desynchronised the other (``tests/test_exfiltration
+    .py::TestFlowTopologyDerived`` pins the agreement).
+    """
+    reverse_edges: list[tuple[str, str]] = []
+    for src in network.edges:
+        for dst in network.edges[src]:
+            if src in drop or dst in drop:
+                continue
+            reverse_edges.append((dst, src))
+    canonical = sorted(reverse_edges)
+    adjacency: dict[str, list[str]] = defaultdict(list)
+    for u, v in canonical:
+        adjacency[u].append(v)
+    nodes = tuple(name for name in network.nodes if name not in drop)
+    edges = {u: tuple(v) for u, v in adjacency.items()}
+    return nodes, edges
+
+
 def _build_default_flow_network() -> FlowNetwork:
     """Construct the canonical exfiltration capacity network.
 
     The registry (agent list) is the source; the internet is the sink. The
-    inner network mirrors :data:`skyfall.cyber_ops.DEFAULT_NETWORK`'s
-    topology, with capacities expressing how much data can move per unit time
-    across each hop.
+    inner network is *derived* from :data:`skyfall.cyber_ops.DEFAULT_NETWORK`
+    (reversed, minus the ``field_terminal`` leaf) by
+    :func:`cyber_flow_topology`, so the exfiltration and intrusion topologies
+    can never silently drift apart; capacities express how much data can move
+    per unit time across each hop.
     """
-    nodes = (
-        "registry",
-        "ops_db",
-        "legacy_ldap",
-        "intranet_hub",
-        "dmz_mail",
-        "vpn_gateway",
-        "demarc",
-        "internet",
-    )
-    edges = {
-        "registry": ("ops_db",),
-        "ops_db": ("intranet_hub", "legacy_ldap"),
-        "legacy_ldap": ("intranet_hub",),
-        "intranet_hub": ("dmz_mail", "vpn_gateway"),
-        "dmz_mail": ("demarc",),
-        "vpn_gateway": ("demarc",),
-        "demarc": ("internet",),
-        "internet": (),
-    }
+    nodes, edges = cyber_flow_topology(_INTRUSION_NETWORK)
     capacity = {
         ("registry", "ops_db"): 10.0,
         ("ops_db", "intranet_hub"): 8.0,
@@ -289,7 +310,8 @@ def _build_default_flow_network() -> FlowNetwork:
     return FlowNetwork(nodes=nodes, edges=edges, capacity=capacity)
 
 
-#: The canonical exfiltration capacity network (fixed constants).
+#: The canonical exfiltration capacity network (fixed constants). Topology is
+#: derived from ``cyber_ops.DEFAULT_NETWORK``.
 DEFAULT_FLOW_NETWORK: FlowNetwork = _build_default_flow_network()
 
 #: The exfiltration source (the registry holding the agent list).

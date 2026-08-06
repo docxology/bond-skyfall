@@ -28,12 +28,10 @@ dev = [
     "ruff>=0.6.0",
     "mypy>=1.10.0",
     "types-PyYAML>=6.0",
-    "bond-utilities>=0.1.0",
 ]
 
 [tool.uv.sources]
 bond-api = { path = "/Users/4d/Documents/GitHub/template/projects/working/bond/bond-api" }
-bond-utilities = { path = "/Users/4d/Documents/GitHub/template/projects/working/bond/bond-utilities" }
 
 [tool.pytest.ini_options]
 pythonpath = [".", "src"]
