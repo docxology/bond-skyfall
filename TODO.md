@@ -150,8 +150,9 @@ stated honestly. Do not re-open these as defects.
   The byte-identity scope is a fixed interpreter, since `PYTHON_VERSION` is
   still injected into the setup section.
 - **`../ROSTER.md` is not writable from here.** D1 records the drift; fixing it
-  requires bond-root scope. Editing it from this package would violate the
-  working boundary.
+  requires bond-root scope, which a standalone clone does not have. Every `../`
+  path in this file refers to the PROJECT BOND monorepo the package was lifted
+  from — not to this repository.
 
 ## Verification
 
@@ -160,7 +161,7 @@ Every gate, with its expected outcome on a clean checkout. If `uv` reports
 failure — re-run with the sandbox disabled.
 
 ```bash
-cd projects/working/bond/skyfall
+cd bond-skyfall
 uv sync --all-extras          # a bare `uv sync` prunes pytest
 
 uv run pytest tests/ --cov=src --cov-fail-under=90
@@ -186,7 +187,8 @@ git status --short             # → empty
 Coverage is enforced as a floor, not advertised as a figure: read the number the
 run prints rather than trusting one quoted in prose, including this file's.
 
-## Local-only
+## Repository
 
-PROJECT BOND working tree. No remote, nothing is ever pushed; commit inside this
-package only.
+Canonical remote `https://github.com/docxology/bond-skyfall`, branch `main`.
+Commit inside this package only. The `uv` commands above assume a PROJECT BOND
+suite checkout; see `README.md` for the standalone-clone test command.

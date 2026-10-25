@@ -19,8 +19,8 @@ break on system id, and no wall-clock or RNG appears in any persisted number.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 __all__ = [
     "LegacySystem",

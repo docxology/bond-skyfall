@@ -4,7 +4,7 @@ type: "manuscript_guide"
 version: "0.1.0"
 ---
 
-# Manuscript (`projects/working/bond/skyfall/manuscript/`)
+# Manuscript (`manuscript/`)
 
 This directory holds the SILVA mission manuscript. Every metric is injected
 from `skyfall.manuscript_variables.generate_variables()` via

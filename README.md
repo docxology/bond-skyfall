@@ -65,12 +65,25 @@ to the canonical MI6 network, so discovery is unaffected.
 ## Install and run
 
 ```bash
-cd projects/working/bond/skyfall
+cd bond-skyfall
 uv sync --extra dev
 
 uv run python scripts/run_mission.py {brief|recon|plan|execute|debrief|all} [--json]
 uv run python scripts/00_preflight.py skyfall
 uv run python scripts/z_generate_manuscript_variables.py
+```
+
+`uv sync` is only valid inside the PROJECT BOND suite: `[tool.uv.sources]` pins
+`bond-api` to the suite-relative path `projects/working/bond/bond-api`. In a
+standalone clone that path does not exist, so install the runtime dependencies
+into an ordinary virtualenv and run pytest directly. The six domain modules are
+stdlib-only; only `mission.py` and `tests/test_mission.py` need `bond_api`:
+
+```bash
+python3 -m venv /tmp/skyfall-venv
+/tmp/skyfall-venv/bin/pip install numpy matplotlib pyyaml pytest pytest-cov ruff mypy
+PYTHONPATH=src:/path/to/suite/bond-api \
+  /tmp/skyfall-venv/bin/python -m pytest tests/ --cov=src --cov-fail-under=90
 ```
 
 ## Gates
@@ -85,6 +98,11 @@ uv run mypy src/ scripts/
 
 Coverage is enforced as a floor rather than advertised as a figure: the run
 prints the live number and fails below 90% on line *and* branch coverage.
+
+`ruff check` takes its rule selection from the PROJECT BOND suite root — this
+package ships no `[tool.ruff]` and inherits `line-length = 120` from there — so
+a standalone clone must point ruff at the suite's settings; `ruff format
+--check --line-length 120` is the portable half of that gate.
 
 ## Reproducible outcomes
 
@@ -118,6 +136,8 @@ Run `uv run python scripts/z_generate_manuscript_variables.py` and read
 | [`docs/`](docs/) | Architecture, agent instructions, testing philosophy |
 | [`manuscript/`](manuscript/) | The scientific write-up; every metric token-injected |
 
-## Local-only
+## Repository
 
-No remote. Commit inside this package only.
+Canonical remote: <https://github.com/docxology/bond-skyfall> (`origin`, default
+branch `main`). Commit inside this package only — never reach into a sibling
+BOND package.

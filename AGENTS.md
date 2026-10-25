@@ -59,8 +59,8 @@ a subprocess test enforces that.
 ## Build, test, verify
 
 ```bash
-cd projects/working/bond/skyfall
-uv sync --extra dev
+cd bond-skyfall
+uv sync --extra dev          # requires the PROJECT BOND suite checkout
 
 # Gates — all three must pass.
 uv run pytest tests/ --cov=src --cov-fail-under=90
@@ -103,7 +103,9 @@ package failure; re-run with the sandbox disabled.
 - Every manuscript metric is injected from `manuscript_variables.py`; the suite
   fails on an unresolved token *and* on a bare numeral in the results prose.
 
-## Local-only
+## Repository
 
-This is a PROJECT BOND working tree — there is no remote and nothing is ever
-pushed. Commit your own work inside this package only.
+Canonical remote: `https://github.com/docxology/bond-skyfall`, branch `main`.
+Commit your own work inside this package only — never a sibling BOND package.
+Outside the suite checkout, `uv sync` cannot resolve `bond-api`; see `README.md`
+for the virtualenv-based test command.

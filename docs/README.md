@@ -40,7 +40,7 @@ planning — each with a real algorithm, real fixed data, and no randomness.
 ## Commands
 
 ```bash
-cd projects/working/bond/skyfall
+cd bond-skyfall
 uv sync --extra dev
 
 # Gates. All three must pass before any claim of "done".
@@ -60,7 +60,18 @@ uv run python scripts/z_generate_manuscript_variables.py
 initialize cache` error is an environment restriction, not a package failure —
 re-run with the sandbox disabled.
 
-## Local-only
+## Standalone clones
 
-This is a PROJECT BOND working tree. There is no git remote and nothing is ever
-pushed. Commit inside this package only.
+`uv sync` resolves `bond-api` through the absolute suite path pinned in
+`[tool.uv.sources]`, so it works only inside a PROJECT BOND checkout. In a
+standalone clone, install the runtime dependencies into a plain virtualenv and
+run pytest with `src` on `PYTHONPATH`; `README.md` has the exact command.
+
+The same applies to `ruff check`, whose rule selection also lives at the suite
+root: use `ruff format --check --line-length 120` standalone.
+
+## Repository
+
+This is a published package: canonical remote
+`https://github.com/docxology/bond-skyfall`, branch `main`. Commit inside this
+package only.

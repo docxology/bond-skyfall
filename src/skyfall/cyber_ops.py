@@ -32,8 +32,8 @@ from __future__ import annotations
 
 import heapq
 from collections import deque
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Iterable
 
 __all__ = [
     "Network",

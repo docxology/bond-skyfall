@@ -14,7 +14,9 @@ Start with `agent_instructions.md`; this file is the one-screen version.
 
 - **Scope is this package.** Never touch a sibling BOND package, the bond root
   files, or the template repo.
-- **Local-only.** No remote exists. Never push. Commit inside this package.
+- **Published package.** Canonical remote `docxology/bond-skyfall`, branch
+  `main`. Commit inside this package; never reach into the suite it was lifted
+  from.
 - **The pure domain core never imports `bond_api`.** `cyber_ops`,
   `traffic_analysis`, `exfiltration`, `legacy_audit`, `patch_strategy`, and
   `estate_defense` are stdlib-only. `mission.py` is the sole protocol adapter,

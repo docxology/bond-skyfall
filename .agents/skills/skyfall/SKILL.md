@@ -9,8 +9,8 @@ tags: [bond, film, mission, cyber-ops, legacy-audit, estate-defense, thin-orches
 
 # skyfall
 
-Project-scoped skill for the BOND film package at
-`projects/working/bond/skyfall/`. Load this when working inside the project.
+Project-scoped skill for this BOND film package. Load this when working inside
+the project.
 
 ## When to Use
 
@@ -21,7 +21,7 @@ Project-scoped skill for the BOND film package at
 ## Quick Reference
 
 ```bash
-cd projects/working/bond/skyfall
+cd bond-skyfall
 uv sync --extra dev
 uv run python scripts/run_mission.py all --json          # five-stage SILVA run
 uv run python scripts/00_preflight.py skyfall             # discovery/protocol check

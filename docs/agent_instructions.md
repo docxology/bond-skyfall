@@ -5,11 +5,11 @@ suggestions; violations fail the gates.
 
 ## Hard rules
 
-1. **Scope is this package only.** Work inside
-   `projects/working/bond/skyfall/`. Never touch a sibling BOND package, the
-   bond root files, or the template repo.
-2. **Local-only.** There is no remote. Never push. Commit inside this package
-   with path-scoped commits.
+1. **Scope is this package only.** Work inside this repository. Never touch the
+   PROJECT BOND suite it was lifted from, a sibling BOND package, or the
+   template repo.
+2. **Published package.** Canonical remote `docxology/bond-skyfall`, branch
+   `main`. Commit inside this package with path-scoped commits.
 3. **Zero mocks.** No `unittest.mock`, `MagicMock`, `mocker.patch`, or
    `create_autospec` anywhere in `tests/`. Real data and real computation only.
    See `testing_philosophy.md` for the real-boundary substitutes.
@@ -94,7 +94,7 @@ network override was added) because `MissionProvider()` still works.
 ## Verification checklist
 
 ```bash
-cd projects/working/bond/skyfall
+cd bond-skyfall
 uv run pytest tests/ --cov=src --cov-fail-under=90
 uv run ruff check src/ scripts/ tests/
 uv run ruff format --check src/ scripts/ tests/
@@ -106,4 +106,8 @@ git status --short   # must be clean after your commit
 ```
 
 If `uv` reports `Failed to initialize cache`, that is a sandbox restriction, not
-a package failure — re-run with the sandbox disabled.
+a package failure — re-run with the sandbox disabled. `uv sync` additionally
+needs a PROJECT BOND suite checkout, since `[tool.uv.sources]` pins `bond-api`
+to a suite path; in a standalone clone use the virtualenv command in
+`README.md`. `ruff check` inherits its rule selection from the suite root too,
+so standalone the portable check is `ruff format --check --line-length 120`.

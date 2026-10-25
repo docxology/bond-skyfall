@@ -23,8 +23,8 @@ All algorithms are deterministic, pure, and independent of the BOND protocol.
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 __all__ = [
     "IslandGrid",
