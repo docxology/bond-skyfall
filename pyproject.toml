@@ -31,7 +31,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-bond-api = { path = "../bond-api" }
+bond-api = { path = "vendor/bond-api" }
 
 [tool.pytest.ini_options]
 pythonpath = [".", "src"]
@@ -62,6 +62,8 @@ exclude_lines = [
 ]
 
 [tool.mypy]
+# Vendored copies are a dependency; their bytes are bound by scripts/vendor.py.
+exclude = ["(^|/)vendor/"]
 python_version = "3.12"
 mypy_path = ["src"]
 explicit_package_bases = true
@@ -76,3 +78,7 @@ ignore_missing_imports = true
 
 [tool.uv]
 # Inherits workspace settings from root pyproject.toml
+
+[tool.ruff]
+# The vendored copies are byte-identical to upstream and must stay that way.
+extend-exclude = ["vendor"]

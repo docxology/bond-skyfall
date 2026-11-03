@@ -107,5 +107,5 @@ package failure; re-run with the sandbox disabled.
 
 Canonical remote: `https://github.com/docxology/bond-skyfall`, branch `main`.
 Commit your own work inside this package only — never a sibling BOND package.
-Outside the suite checkout, `uv sync` cannot resolve `bond-api`; see `README.md`
-for the virtualenv-based test command.
+`uv sync` resolves `bond-api` from the vendored copy at `vendor/bond-api`, so it works
+outside the suite checkout; see `README.md`.

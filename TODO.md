@@ -77,8 +77,9 @@ runs.
 
 ### Correctness
 
-**None open.** Checked this session: full suite green at 100.00% line+branch;
-ruff, ruff-format and mypy clean; preflight passes; `git status --short` empty;
+**None open.** Checked in the 2026-08-06 session: full suite green at 100.00%
+line+branch; ruff, ruff-format and mypy clean at that head; preflight passes;
+`git status --short` empty;
 both audit findings in `../output/verify/skyfall.json` re-verified as fixed in
 code, not just in prose; the `manuscript/03_results.md` wording flagged as an
 uncommitted third-party edit in `../output/verify/skyfall.unresolved.json` is
@@ -96,6 +97,12 @@ Claims that hold today but are not bound by a test that can fail.
 | V2 | **Figure byte-determinism is asserted only within one interpreter.** `tests/test_figures.py:31-36` and `:56-61` render twice inside the same process, so any dependence on hash-randomised iteration order is invisible to them; `AGENTS.md:94-95` states the stronger cross-run claim. Manually confirmed today: two subprocesses at `PYTHONHASHSEED=1` and `PYTHONHASHSEED=2` both produce `sha256 dc24fab1…5e3e97` for `render_estate_defense_figure`. **Done when:** a test renders each figure in two subprocesses with different `PYTHONHASHSEED` values and compares bytes. **Command:** `uv run pytest tests/test_figures.py -k hashseed -v` |
 | V3 | **Orchestrator round-trip never exercised.** Discovery is verified only *locally*, from inside this package (`scripts/00_preflight.py:31`, `load_provider(slug, search_paths=[SRC])`). `bond-orchestrator` has never bound `skyfall`: it is absent from `../_omnibus/output_canonical/omnibus_report.json`, whose chain is `goldfinger → goldeneye → no_time_to_die`. **Done when:** `bond-orchestrator` discovers `skyfall`, runs all five stages, and looks up all six gadget names (`intrusion_analyzer`, `traffic_detector`, `severance_planner`, `legacy_auditor`, `patch_scheduler`, `estate_planner`). Nothing further should be needed in-repo; if it is, that is a defect in the frozen surface and belongs in `docs/architecture.md`. **Command:** run the orchestrator against this `src/` from `../bond-orchestrator`; then `uv run python scripts/00_preflight.py skyfall` must still pass unchanged. |
 | V4 | **`bond-utilities` is a declared, unused dev dependency.** `pyproject.toml:31` requires `bond-utilities>=0.1.0` and `:36` pins its path, but `grep -rn bond_utilities src/ scripts/ tests/ docs/` returns nothing — the mission carries its own in-protocol `Provenance` (per the frozen `bond_api.MissionOutcome`) and never writes it anywhere durable. A declared dependency nothing imports is an unbound claim. **Done when:** either the dependency is dropped from `pyproject.toml`, or a `persist_outcome()` call exists (in `mission.py` or a script) with a test asserting the persisted payload is byte-identical across two runs and contains no wall-clock. **Command:** `grep -rn "bond_utilities" src/ scripts/ tests/` (non-empty, or the dep is gone from `pyproject.toml`), then `uv sync --all-extras && uv run pytest tests/ --cov=src --cov-fail-under=90` |
+
+### Toolchain
+
+| # | Item |
+| --- | --- |
+| T1 | **`ruff check` and `ruff format --check` are red on `main`, and were red before the vendoring change.** Measured 2026-11-03: **41** findings on `src/ scripts/ tests/`, 26 of them auto-fixable (`RUF022`, `RUF100`, `I001`), and **20** files `ruff format` would reformat. The counts are identical at the baseline commit `ed44889b0a` and at the vendoring branch's head, so that change adds no debt to this red baseline and is not merged on a green gate. `mypy src/ scripts/` is clean. **Done when:** a format pass lands as one mechanical commit, then the remaining findings are resolved one at a time, with an explicit `noqa` and a reason at the site for the semantic ones — `PLW1510` adds `check=` to `subprocess.run` calls and `TRY004` changes the exception type callers see, and neither belongs inside a dependency change. **Command:** `uv run ruff check src/ scripts/ tests/`; `uv run ruff format --check src/ scripts/ tests/` |
 
 ### Documentation
 
