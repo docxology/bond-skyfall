@@ -73,17 +73,15 @@ uv run python scripts/00_preflight.py skyfall
 uv run python scripts/z_generate_manuscript_variables.py
 ```
 
-`uv sync` is only valid inside the PROJECT BOND suite: `[tool.uv.sources]` pins
-`bond-api` to the suite-relative path `projects/working/bond/bond-api`. In a
-standalone clone that path does not exist, so install the runtime dependencies
-into an ordinary virtualenv and run pytest directly. The six domain modules are
-stdlib-only; only `mission.py` and `tests/test_mission.py` need `bond_api`:
+`uv sync` works in a standalone clone: `[tool.uv.sources]` points `bond-api` at
+the vendored copy under `vendor/bond-api`, whose bytes are recorded in
+`vendor/bond-api/PROVENANCE.json` and checked by `scripts/vendor.py`. The six
+domain modules are stdlib-only; only `mission.py` and `tests/test_mission.py`
+need `bond_api`:
 
 ```bash
-python3 -m venv /tmp/skyfall-venv
-/tmp/skyfall-venv/bin/pip install numpy matplotlib pyyaml pytest pytest-cov ruff mypy
-PYTHONPATH=src:/path/to/suite/bond-api \
-  /tmp/skyfall-venv/bin/python -m pytest tests/ --cov=src --cov-fail-under=90
+uv sync --extra dev
+uv run pytest tests/ --cov=src --cov-fail-under=90
 ```
 
 ## Gates
