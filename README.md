@@ -97,10 +97,17 @@ uv run mypy src/ scripts/
 Coverage is enforced as a floor rather than advertised as a figure: the run
 prints the live number and fails below 90% on line *and* branch coverage.
 
-`ruff check` takes its rule selection from the PROJECT BOND suite root — this
-package ships no `[tool.ruff]` and inherits `line-length = 120` from there — so
-a standalone clone must point ruff at the suite's settings; `ruff format
---check --line-length 120` is the portable half of that gate.
+`ruff check` no longer takes its rule selection from the PROJECT BOND suite
+root: this package's own `[tool.ruff]` table (created by the vendoring; it holds
+only `extend-exclude = ["vendor"]`) is the nearest configuration, and ruff does
+not merge a parent's, so the gate runs on ruff's defaults. Measured 2026-11-04
+with ruff 0.16.1, two trees sharing that table and differing only in its body:
+with it, `ruff format --check` reports **20 of 32 files** to reformat and
+`ruff check` **41** findings; with the body set to `line-length = 120`,
+`ruff format --check` reports **1 file** — `scripts/vendor.py`, the
+fleet-identical checker conformed to ruff's defaults — and `ruff check` **38**
+findings. `ruff format --check --line-length 120` reproduces the second column
+except that checker. `TODO.md` V5 records the measurement and the decisions.
 
 ## Reproducible outcomes
 

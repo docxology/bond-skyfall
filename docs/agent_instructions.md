@@ -106,8 +106,9 @@ git status --short   # must be clean after your commit
 ```
 
 If `uv` reports `Failed to initialize cache`, that is a sandbox restriction, not
-a package failure — re-run with the sandbox disabled. `uv sync` additionally
-needs a PROJECT BOND suite checkout, since `[tool.uv.sources]` pins `bond-api`
-to a suite path; in a standalone clone use the virtualenv command in
-`README.md`. `ruff check` inherits its rule selection from the suite root too,
-so standalone the portable check is `ruff format --check --line-length 120`.
+a package failure — re-run with the sandbox disabled. `uv sync` resolves
+`bond-api` from the vendored copy at `vendor/bond-api`, so it needs no suite
+checkout. `ruff check` no longer inherits the suite root's rules either: this
+package's own `[tool.ruff]` table is the nearest configuration, and ruff does not
+merge a parent's, so the lint gate runs on ruff's defaults — `TODO.md` V5 has the
+measurement and the checker exception.
