@@ -97,12 +97,13 @@ Claims that hold today but are not bound by a test that can fail.
 | V2 | **Figure byte-determinism is asserted only within one interpreter.** `tests/test_figures.py:31-36` and `:56-61` render twice inside the same process, so any dependence on hash-randomised iteration order is invisible to them; `AGENTS.md:94-95` states the stronger cross-run claim. Manually confirmed today: two subprocesses at `PYTHONHASHSEED=1` and `PYTHONHASHSEED=2` both produce `sha256 dc24fab1…5e3e97` for `render_estate_defense_figure`. **Done when:** a test renders each figure in two subprocesses with different `PYTHONHASHSEED` values and compares bytes. **Command:** `uv run pytest tests/test_figures.py -k hashseed -v` |
 | V3 | **Orchestrator round-trip never exercised.** Discovery is verified only *locally*, from inside this package (`scripts/00_preflight.py:31`, `load_provider(slug, search_paths=[SRC])`). `bond-orchestrator` has never bound `skyfall`: it is absent from `../_omnibus/output_canonical/omnibus_report.json`, whose chain is `goldfinger → goldeneye → no_time_to_die`. **Done when:** `bond-orchestrator` discovers `skyfall`, runs all five stages, and looks up all six gadget names (`intrusion_analyzer`, `traffic_detector`, `severance_planner`, `legacy_auditor`, `patch_scheduler`, `estate_planner`). Nothing further should be needed in-repo; if it is, that is a defect in the frozen surface and belongs in `docs/architecture.md`. **Command:** run the orchestrator against this `src/` from `../bond-orchestrator`; then `uv run python scripts/00_preflight.py skyfall` must still pass unchanged. |
 | V4 | **`bond-utilities` is a declared, unused dev dependency.** `pyproject.toml:31` requires `bond-utilities>=0.1.0` and `:36` pins its path, but `grep -rn bond_utilities src/ scripts/ tests/ docs/` returns nothing — the mission carries its own in-protocol `Provenance` (per the frozen `bond_api.MissionOutcome`) and never writes it anywhere durable. A declared dependency nothing imports is an unbound claim. **Done when:** either the dependency is dropped from `pyproject.toml`, or a `persist_outcome()` call exists (in `mission.py` or a script) with a test asserting the persisted payload is byte-identical across two runs and contains no wall-clock. **Command:** `grep -rn "bond_utilities" src/ scripts/ tests/` (non-empty, or the dep is gone from `pyproject.toml`), then `uv sync --all-extras && uv run pytest tests/ --cov=src --cov-fail-under=90` |
+| V5 | **Nothing binds the ruff configuration the lint gate reads, and the vendoring changed it — four passages still described the old one.** The package now ships a `[tool.ruff]` table holding only `extend-exclude = ["vendor"]`; ruff selects the *nearest* configuration and does not merge a parent's, so `ruff check` runs on ruff's defaults where it previously inherited the suite root's `line-length = 120`. Measured 2026-11-04 with ruff 0.16.1, in two trees whose `pyproject.toml` carries the same table in the same place and differs only in its body: with `extend-exclude = ["vendor"]` the effective `line_length` is **88**, `ruff format --check` reports **20 of 32 files** and `ruff check` **41** findings; with the body replaced by `line-length = 120` the effective length is **120**, `ruff format --check` reports **1 file** (`scripts/vendor.py`, the fleet-identical checker conformed to ruff's defaults) and `ruff check` **38** findings — the whole difference is three `I001` findings. At `ed44889b0a`, with a `line-length = 120` table added to its own `pyproject.toml`, the same commands report **38** findings and **0 files** to reformat, so the shadowing leaves the check row red at the same total apart from those three sort findings and moves the format row from clean to 20 files. (A first version of this control put the 120 setting in a synthetic parent `pyproject.toml` instead; that arm also moved isort's project root and reported 45 findings with 21 `I001`, so it was discarded as an artifact — recorded here rather than quietly replaced.) Four passages stated the inheritance and the suite-path requirement as current — as they stood at `d11d04e`: `README.md:100-103`, `docs/README.md:63-71`, `docs/agent_instructions.md:108-113` and `TODO.md:199-201` — and all four are corrected in this change. **Decided 2026-11-04 (orchestrator):** the minimal table stays — re-cutting the 27 recorded vendoring payloads is not worth the frozen blobs — and `scripts/vendor.py`'s conformance to ruff's defaults is a **named exception**, because the checker ships byte-identical in every film package. **Command:** `uv run ruff format --check src/ scripts/ tests/`; `uv run ruff check src/ scripts/ tests/` |
 
 ### Toolchain
 
 | # | Item |
 | --- | --- |
-| T1 | **`ruff check` and `ruff format --check` are red on `main`, and were red before the vendoring change.** Measured 2026-11-03: **41** findings on `src/ scripts/ tests/`, 26 of them auto-fixable (`RUF022`, `RUF100`, `I001`), and **20** files `ruff format` would reformat. The counts are identical at the baseline commit `ed44889b0a` and at the vendoring branch's head, so that change adds no debt to this red baseline and is not merged on a green gate. `mypy src/ scripts/` is clean. **Done when:** a format pass lands as one mechanical commit, then the remaining findings are resolved one at a time, with an explicit `noqa` and a reason at the site for the semantic ones — `PLW1510` adds `check=` to `subprocess.run` calls and `TRY004` changes the exception type callers see, and neither belongs inside a dependency change. **Command:** `uv run ruff check src/ scripts/ tests/`; `uv run ruff format --check src/ scripts/ tests/` |
+| T1 | **`ruff check` and `ruff format --check` are red on `main`, and were red before the vendoring change.** Measured 2026-11-03: **41** findings on `src/ scripts/ tests/`, 26 of them auto-fixable (`RUF022`, `RUF100`, `I001`), and **20** files `ruff format` would reformat. The counts are identical at the baseline commit `ed44889b0a` and at the vendoring branch's head, so that change adds no debt to this red baseline and is not merged on a green gate. Both ends were measured under ruff's defaults; under the inherited `line-length = 120` (measured by putting that setting in the package's own `pyproject.toml`, V5) the pre-vendoring head reports **38** findings and **0** files to reformat, and that setting is no longer the one in force. `mypy src/ scripts/` is clean. **Done when:** a format pass lands as one mechanical commit, then the remaining findings are resolved one at a time, with an explicit `noqa` and a reason at the site for the semantic ones — `PLW1510` adds `check=` to `subprocess.run` calls and `TRY004` changes the exception type callers see, and neither belongs inside a dependency change. **Command:** `uv run ruff check src/ scripts/ tests/`; `uv run ruff format --check src/ scripts/ tests/` |
 
 ### Documentation
 
@@ -172,14 +173,18 @@ cd bond-skyfall
 uv sync --all-extras          # a bare `uv sync` prunes pytest
 
 uv run pytest tests/ --cov=src --cov-fail-under=90
-# → 217 passed; TOTAL 996 stmts / 362 branches / 0 miss; 100.00%
+# → measured 2026-11-04: 252 passed; TOTAL 1102 stmts / 418 branches / 0 miss; 100.00%
 
 uv run ruff check src/ scripts/ tests/
-# → All checks passed!
+# → measured 2026-11-04: rc=1, 41 findings under the defaults this package reads
+#   since the vendoring's table; 38 with line-length = 120 in that table's place,
+#   and 38 at the pre-vendoring head under that setting (T1, V5)
 uv run ruff format --check src/ scripts/ tests/
-# → 30 files already formatted
+# → measured 2026-11-04: rc=1, 20 of 32 files would be reformatted; with
+#   line-length = 120 in the table's place only scripts/vendor.py, and 0 files at
+#   the pre-vendoring head under that setting (V5)
 uv run mypy src/ scripts/
-# → Success: no issues found in 13 source files
+# → measured 2026-11-04: Success: no issues found in 14 source files
 
 uv run python scripts/00_preflight.py skyfall
 # → OK: skyfall discoverable, 5/5 provider methods bound, 11 protocol dataclasses
@@ -197,5 +202,5 @@ run prints rather than trusting one quoted in prose, including this file's.
 ## Repository
 
 Canonical remote `https://github.com/docxology/bond-skyfall`, branch `main`.
-Commit inside this package only. The `uv` commands above assume a PROJECT BOND
-suite checkout; see `README.md` for the standalone-clone test command.
+Commit inside this package only. The `uv` commands above run in a standalone
+clone: `bond-api` resolves to the vendored copy at `vendor/bond-api`.

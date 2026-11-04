@@ -60,7 +60,7 @@ a subprocess test enforces that.
 
 ```bash
 cd bond-skyfall
-uv sync --extra dev          # requires the PROJECT BOND suite checkout
+uv sync --extra dev          # resolves bond-api from vendor/bond-api
 
 # Gates — all three must pass.
 uv run pytest tests/ --cov=src --cov-fail-under=90

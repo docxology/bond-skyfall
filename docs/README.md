@@ -62,13 +62,17 @@ re-run with the sandbox disabled.
 
 ## Standalone clones
 
-`uv sync` resolves `bond-api` through the absolute suite path pinned in
-`[tool.uv.sources]`, so it works only inside a PROJECT BOND checkout. In a
-standalone clone, install the runtime dependencies into a plain virtualenv and
-run pytest with `src` on `PYTHONPATH`; `README.md` has the exact command.
+`uv sync --extra dev` works in a standalone clone: `[tool.uv.sources]` points
+`bond-api` at the vendored copy under `vendor/bond-api`, whose bytes are recorded
+in `vendor/bond-api/PROVENANCE.json` and checked by `scripts/vendor.py`. Before
+the vendoring it resolved through an absolute suite path, and the fallback was a
+plain virtualenv with `src` on `PYTHONPATH`; `TODO.md` holds that history.
 
-The same applies to `ruff check`, whose rule selection also lives at the suite
-root: use `ruff format --check --line-length 120` standalone.
+`ruff check` no longer reads the suite root's rule selection either: this
+package's own `[tool.ruff]` table is the nearest configuration, and ruff does not
+merge a parent's, so the lint gate runs on ruff's defaults in a clone and in the
+suite alike. The measured consequence and the checker exception are in `TODO.md`
+V5.
 
 ## Repository
 
