@@ -5,6 +5,30 @@ package modeling the cyberattack on MI6, the exfiltration of the NATO agent
 list, the legacy-system exposure audit, the patch schedule, and the Skyfall
 estate defense plan. Implements the frozen BOND-API `MissionProvider` contract.
 
+## Mission model
+
+```mermaid
+flowchart TD
+    accTitle: SILVA implemented mission analyses
+    accDescr: HQ network, traffic, legacy fleet and estate topology feed Intrusion paths and exfiltration max-flow/min-cut; Traffic change detection and legacy patch scheduling; Island topology and estate choke-point defense. The mission adapter returns intrusion, containment, remediation and defense reports with provenance, then a debrief.
+    I["HQ network, traffic, legacy fleet and estate topology"]
+    G0["Intrusion paths and exfiltration max-flow/min-cut"]
+    I --> G0
+    G1["Traffic change detection and legacy patch scheduling"]
+    I --> G1
+    G2["Island topology and estate choke-point defense"]
+    I --> G2
+    O["mission.py: execute returns MissionOutcome<br/>Intrusion, containment, remediation and defense reports and provenance"]
+    G0 --> O
+    G1 --> O
+    G2 --> O
+    O --> F["debrief: mission summary"]
+```
+
+The branches group implemented capabilities; they do not imply a runtime order.
+
+**Source map:** [`cyber_ops.py`](src/skyfall/cyber_ops.py), [`exfiltration.py`](src/skyfall/exfiltration.py); [`traffic_analysis.py`](src/skyfall/traffic_analysis.py), [`legacy_audit.py`](src/skyfall/legacy_audit.py), [`patch_strategy.py`](src/skyfall/patch_strategy.py); [`estate_defense.py`](src/skyfall/estate_defense.py); [`mission.py`](src/skyfall/mission.py).
+
 ## Film → software mapping
 
 The film is the spec; the code is the implementation. Six threat surfaces from
