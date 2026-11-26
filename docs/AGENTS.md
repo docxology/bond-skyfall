@@ -1,5 +1,7 @@
 # docs/ — Agent-Facing Documentation Hub
 
+[Package maintenance](package-maintenance.md) identifies the dependency and citation records.
+
 Index and constraint summary for the skyfall (SILVA) mission package docs.
 Start with `agent_instructions.md`; this file is the one-screen version.
 
