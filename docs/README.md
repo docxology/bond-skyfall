@@ -1,5 +1,7 @@
 # docs/ — skyfall (SILVA) documentation
 
+[Package maintenance](package-maintenance.md) covers dependency and release records.
+
 Agent- and human-facing documentation for the **skyfall** mission package
 (film: Skyfall, 2012 · codename **SILVA**), one film package in the PROJECT
 BOND suite. This directory explains how the package is built, how to work
