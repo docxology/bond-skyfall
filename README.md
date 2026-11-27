@@ -1,6 +1,7 @@
 # Skyfall — SILVA (PROJECT BOND mission package)
 
-See [package maintenance](docs/package-maintenance.md) for dependency and citation records.
+For the distribution version, checkout Python selection, dependency sources,
+and citation records, see [package maintenance](docs/package-maintenance.md).
 
 Skyfall (2012) · mission codename **SILVA**. A deterministic mission-software
 package modeling the cyberattack on MI6, the exfiltration of the NATO agent

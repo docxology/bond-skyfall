@@ -1,5 +1,8 @@
 # Skyfall — SILVA (PROJECT BOND film package)
 
+The [package maintenance guide](docs/package-maintenance.md) records the
+distribution identity, Python selection, dependency provenance, and citation metadata.
+
 ## Identity
 
 - **Film**: Skyfall (2012)
